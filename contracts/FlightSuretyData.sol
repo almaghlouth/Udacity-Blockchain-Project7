@@ -12,10 +12,25 @@ contract FlightSuretyData {
     address private contractOwner;                                      // Account used to deploy contract
     bool private operational = true;                                    // Blocks all state changes throughout the contract if false
 
+    struct Airline {
+        uint id,
+        string name,
+        bool approved,
+        bool active,
+        uint balance,
+        uint needed_votes,
+        uint gained_votes
+    }
+    uint private airline_counter = 0;
+    mapping(address => airline) airlines;
+    mapping(address => mapping(address => bool)) voters_record;
+
     /********************************************************************************************/
     /*                                       EVENT DEFINITIONS                                  */
     /********************************************************************************************/
 
+    event AirlineRegistered(address _address,uint ID,uint name);
+    event AirlineApproved(address _address,uint ID,uint name);
 
     /**
     * @dev Constructor
@@ -99,13 +114,51 @@ contract FlightSuretyData {
     *
     */   
     function registerAirline
-                            (   
+                            (memory string _name,
+                            address _address   
                             )
                             external
-                            pure
     {
+        uint memory _id = airline_counter;
+        if (airline_counter == 0) {
+            Airline memory item = Airline(_id, _name, true, false, 0,0,0);
+            airline_counter++;
+            airlines[_address] = item;
+            emit FlightRegistered(_address, _id, _name);
+            emit FlightApproved(_address, _id, _name);
+        } else if (airline_counter > 0 && airline_counter =< 4) {
+            require(airlines[msg.sender].approved == true, "This transaction must be done by from an account of an approvedd airline");
+            Airline memory item = Airline(_id, _name, true, false, 0,1,1);
+            airline_counter++;
+            airlines[_address] = item;
+            emit FlightRegistered(_address, _id, _name);
+            emit FlightApproved(_address, _id, _name);
+        } else if (airline_counter > 4) {
+            //require(airlines[msg.sender].approved == true, "This transaction must be done by from an account of an approvedd airline");
+            uint _needed = ((_id / 2 ) + ( _id % 2 ))
+            Airline memory item = Airline(_id, _name, false, false, 0,_needed,1);
+            airline_counter++;
+            airlines[_address] = item;
+            emit FlightRegistered(_address, _id, _name);
+        }
     }
 
+
+    function registerAirline
+                            (address _address)  
+                            )
+                            external
+    {
+        require(airlines[_address].approved == true, "This Airline already got approved");
+        require(airlines[msg.sender].approved == true, "This transaction must be done by from an account of an approvedd airline");
+        require(voters_record[_address][msg.sender] == true, "This account already approved this airline");
+        airlines[_address].gained_votes++;
+        voters_record[_address][msg.sender]=true;
+        if (airlines[_address].gained_votes == airlines[_address].needed_votes) {
+            airlines[_address].approved = true;
+            emit FlightRegistered(_address,  airlines[_address].id,  airlines[_address].name);
+        }
+    }
 
    /**
     * @dev Buy insurance for a flight
