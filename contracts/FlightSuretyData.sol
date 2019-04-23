@@ -1,9 +1,9 @@
 pragma solidity ^0.4.25;
 
-import "../node_modules/openzeppelin-solidity/contracts/math/SafeMath.sol";
+//import "../node_modules/openzeppelin-solidity/contracts/math/SafeMath.sol";
 
 contract FlightSuretyData {
-    using SafeMath for uint256;
+    //using SafeMath for uint256;
 
     /********************************************************************************************/
     /*                                       DATA VARIABLES                                     */
@@ -13,25 +13,25 @@ contract FlightSuretyData {
     bool private operational = true;                                    // Blocks all state changes throughout the contract if false
 
     struct Airline {
-        uint id,
-        string name,
-        bool approved,
-        bool active,
-        uint balance,
-        uint needed_votes,
-        uint gained_votes
+        uint id;
+        string name;
+        bool approved;
+        bool active;
+        uint balance;
+        uint needed_votes;
+        uint gained_votes;
     }
     uint private airline_counter = 0;
-    mapping(address => airline) airlines;
+    mapping(address => Airline) airlines;
     mapping(address => mapping(address => bool)) voters_record;
 
     /********************************************************************************************/
     /*                                       EVENT DEFINITIONS                                  */
     /********************************************************************************************/
 
-    event AirlineRegistered(address _address,uint ID,uint name);
-    event AirlineApproved(address _address,uint ID,uint name);
-    event AirlineActivated(address _address,uint ID,uint name);
+    event AirlineRegistered(address _address,uint id,string name);
+    event AirlineApproved(address _address,uint id,string name);
+    event AirlineActivated(address _address,uint id,string name);
 
     /**
     * @dev Constructor
@@ -115,39 +115,38 @@ contract FlightSuretyData {
     *
     */   
     function registerAirline
-                            (memory string _name,
+                            (string _name,
                             address _address   
                             )
                             external
     {
-        uint memory _id = airline_counter;
+        uint _id = airline_counter;
         if (airline_counter == 0) {
             Airline memory item = Airline(_id, _name, true, false, 0,0,0);
             airline_counter++;
             airlines[_address] = item;
-            emit AirineRegistered(_address, _id, _name);
-            emit AirineApproved(_address, _id, _name);
+            emit AirlineRegistered(_address, _id, _name);
+            emit AirlineApproved(_address, _id, _name);
         } else if (airline_counter > 0 && airline_counter <= 4) {
             require(airlines[msg.sender].approved == true, "This transaction must be done by from an account of an approvedd airline");
-            Airline memory item = Airline(_id, _name, true, false, 0,1,1);
+            Airline memory item2 = Airline(_id, _name, true, false, 0,1,1);
             airline_counter++;
-            airlines[_address] = item;
-            emit AirineRegistered(_address, _id, _name);
-            emit AirineApproved(_address, _id, _name);
+            airlines[_address] = item2;
+            emit AirlineRegistered(_address, _id, _name);
+            emit AirlineApproved(_address, _id, _name);
         } else if (airline_counter > 4) {
             //require(airlines[msg.sender].approved == true, "This transaction must be done by from an account of an approvedd airline");
-            uint _needed = ((_id / 2 ) + ( _id % 2 ))
-            Airline memory item = Airline(_id, _name, false, false, 0,_needed,1);
+            uint _needed = ((_id / 2 ) + ( _id % 2 ));
+            Airline memory item3 = Airline(_id, _name, false, false, 0,_needed,1);
             airline_counter++;
-            airlines[_address] = item;
-            emit AirineRegistered(_address, _id, _name);
+            airlines[_address] = item3;
+            emit AirlineRegistered(_address, _id, _name);
         }
     }
 
 
     function approveAirline
                             (address _address)  
-                            )
                             external
     {
         require(airlines[_address].approved == true, "This Airline already got approved");
@@ -157,7 +156,7 @@ contract FlightSuretyData {
         voters_record[_address][msg.sender]=true;
         if (airlines[_address].gained_votes == airlines[_address].needed_votes) {
             airlines[_address].approved = true;
-            emit AirineRegistered(_address,  airlines[_address].id,  airlines[_address].name);
+            emit AirlineRegistered(_address,  airlines[_address].id,  airlines[_address].name);
         }
     }
 
@@ -212,7 +211,7 @@ contract FlightSuretyData {
         require(airlines[msg.sender].approved == true, "This transaction must be done by from an account of an approvedd airline");
         if (msg.value >= 10000000000000000000){
             airlines[msg.sender].balance = msg.value;
-            emit AirineActivated(msg.sender,  airlines[msg.sender].id,  airlines[msg.sender].name);
+            emit AirlineActivated(msg.sender,  airlines[msg.sender].id,  airlines[msg.sender].name);
         }
 
     }
