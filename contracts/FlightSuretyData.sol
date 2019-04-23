@@ -31,6 +31,7 @@ contract FlightSuretyData {
 
     event AirlineRegistered(address _address,uint ID,uint name);
     event AirlineApproved(address _address,uint ID,uint name);
+    event AirlineActivated(address _address,uint ID,uint name);
 
     /**
     * @dev Constructor
@@ -124,27 +125,27 @@ contract FlightSuretyData {
             Airline memory item = Airline(_id, _name, true, false, 0,0,0);
             airline_counter++;
             airlines[_address] = item;
-            emit FlightRegistered(_address, _id, _name);
-            emit FlightApproved(_address, _id, _name);
-        } else if (airline_counter > 0 && airline_counter =< 4) {
+            emit AirineRegistered(_address, _id, _name);
+            emit AirineApproved(_address, _id, _name);
+        } else if (airline_counter > 0 && airline_counter <= 4) {
             require(airlines[msg.sender].approved == true, "This transaction must be done by from an account of an approvedd airline");
             Airline memory item = Airline(_id, _name, true, false, 0,1,1);
             airline_counter++;
             airlines[_address] = item;
-            emit FlightRegistered(_address, _id, _name);
-            emit FlightApproved(_address, _id, _name);
+            emit AirineRegistered(_address, _id, _name);
+            emit AirineApproved(_address, _id, _name);
         } else if (airline_counter > 4) {
             //require(airlines[msg.sender].approved == true, "This transaction must be done by from an account of an approvedd airline");
             uint _needed = ((_id / 2 ) + ( _id % 2 ))
             Airline memory item = Airline(_id, _name, false, false, 0,_needed,1);
             airline_counter++;
             airlines[_address] = item;
-            emit FlightRegistered(_address, _id, _name);
+            emit AirineRegistered(_address, _id, _name);
         }
     }
 
 
-    function registerAirline
+    function approveAirline
                             (address _address)  
                             )
                             external
@@ -156,7 +157,7 @@ contract FlightSuretyData {
         voters_record[_address][msg.sender]=true;
         if (airlines[_address].gained_votes == airlines[_address].needed_votes) {
             airlines[_address].approved = true;
-            emit FlightRegistered(_address,  airlines[_address].id,  airlines[_address].name);
+            emit AirineRegistered(_address,  airlines[_address].id,  airlines[_address].name);
         }
     }
 
@@ -208,6 +209,12 @@ contract FlightSuretyData {
                             public
                             payable
     {
+        require(airlines[msg.sender].approved == true, "This transaction must be done by from an account of an approvedd airline");
+        if (msg.value >= 10000000000000000000){
+            airlines[msg.sender].balance = msg.value;
+            emit AirineActivated(msg.sender,  airlines[msg.sender].id,  airlines[msg.sender].name);
+        }
+
     }
 
     function getFlightKey
@@ -231,7 +238,7 @@ contract FlightSuretyData {
                             external 
                             payable 
     {
-        fund();
+        //fund();
     }
 
 
