@@ -18,6 +18,7 @@ contract FlightSuretyData {
         bool approved;
         bool active;
         uint balance;
+        uint reserved;
         uint needed_votes;
         uint gained_votes;
     }
@@ -25,14 +26,54 @@ contract FlightSuretyData {
     mapping(address => Airline) airlines;
     mapping(address => mapping(address => bool)) voters_record;
 
+    struct Passenger {
+        address passenger_address;
+        uint balance;
+    }
+
+    mapping(address => Passenger) passengers;
+
+    uint private policies_counter = 0;
+    struct Insurance {
+        address holder;
+        address airline_address;
+        uint flight_id;
+        uint departure_time;
+        uint cost;
+        bool claimed;        
+    }
+
+    mapping(uint => Insurance) insurances;
+
+    struct Flight {
+        address airline_address;
+        uint flight_id;
+        uint departure_time;
+        bool registred;
+        uint status;
+    }
+
+    //airline address => flight no => departure => status
+    mapping(address => mapping(uint => mapping(uint => uint)) flights;
+
     /********************************************************************************************/
     /*                                       EVENT DEFINITIONS                                  */
     /********************************************************************************************/
 
-    event AirlineRegistered(address _address,uint id,string name);
-    event AirlineApproved(address _address,uint id,string name);
-    event AirlineActivated(address _address,uint id,string name);
+    event AirlineRegistered(address _address, uint id, string name);
+    event AirlineApproved(address _address, uint id, string name);
+    event AirlineActivated(address _address, uint id, string name);
 
+    event InsuranceBought(uint policy, address holder,uint flight_id, uint depature_time, uint price);
+    event InsuranceClaimed(uint policy, address holder,uint flight_id, uint depature_time, uint amount);
+    event BalanceWithdraw(address holder, uint amount);
+
+
+    /********************************************************************************************/
+    /*                                       CONSTRUCTOR                                        */
+    /********************************************************************************************/
+
+    
     /**
     * @dev Constructor
     *      The deploying account becomes contractOwner
@@ -129,7 +170,7 @@ contract FlightSuretyData {
             emit AirlineApproved(_address, _id, _name);
         } else if (airline_counter > 0 && airline_counter <= 4) {
             require(airlines[msg.sender].approved == true, "This transaction must be done by from an account of an approvedd airline");
-            Airline memory item2 = Airline(_id, _name, true, false, 0,1,1);
+            Airline memory item2 = Airline(_id, _name, true, false, 0,,0,1,1);
             airline_counter++;
             airlines[_address] = item2;
             emit AirlineRegistered(_address, _id, _name);
@@ -137,7 +178,7 @@ contract FlightSuretyData {
         } else if (airline_counter > 4) {
             //require(airlines[msg.sender].approved == true, "This transaction must be done by from an account of an approvedd airline");
             uint _needed = ((_id / 2 ) + ( _id % 2 ));
-            Airline memory item3 = Airline(_id, _name, false, false, 0,_needed,1);
+            Airline memory item3 = Airline(_id, _name, false, false, 0, 0,_needed,1);
             airline_counter++;
             airlines[_address] = item3;
             emit AirlineRegistered(_address, _id, _name);
@@ -165,23 +206,41 @@ contract FlightSuretyData {
     *
     */   
     function buy
-                            (                             
+                            (address _airline_address,
+                            uint _flight_id,
+                            uint _departure_time
                             )
                             external
                             payable
     {
-
+        require(msg.value =< 1000000000000000000, "Cannot buy insurance for more than 1 ether");
+        require((msg.value * 1.5) <= (airlines[_airline_address].balance - airlines[_airline_address].reserved), "The request Airline is sold out of insurances");
+        Insurance memory item = Insurance(msg.sender,_airline_address, _flight_id, _departure_time, msg.value, false);
+        uint memory count = policies_counter;
+        insurances[count] = item;
+        policies_counter++;
+        airlines[_airline_address].reserved = airlines[_airline_address].reserved + (msg.value * 1.5);
+        airlines[_airline_address].balance = airlines[_airline_address].reserved + msg.value;
+        emit InsuranceBought(count,msg.sender,_flight_id,_departure_time,msg.value);
     }
 
     /**
      *  @dev Credits payouts to insurees
     */
     function creditInsurees
-                                (
+                                (uint _policy
                                 )
                                 external
                                 pure
     {
+        require(insurances[_policy].calimed == false, "Policy Already Claimed");
+        require(flights[insurances[_policy].airline_address][insurances[_policy].flight_id][insurances[_policy].departure_time] == 20,"The current flight status is not delayed duo to airline failure");
+        require((airlines[insurances[_policy].airline_address].balance >= (insurances[_policy].cost * 1.5)) && (airlines[insurances[_policy].airline_address].reserved >= (insurances[_policy].cost * 1.5)),"The airline cannot provide insurance payment at the moment");
+        insurances[_policy].calimed = true;
+        airlines[insurances[_policy].airline_address].balance = airlines[insurances[_policy].airline_address].balance - (insurances[_policy].cost * 1.5);
+        airlines[insurances[_policy].airline_address].reserved = airlines[insurances[_policy].airline_address].reserved - (insurances[_policy].cost * 1.5);
+        passengers[msg.sender].balance = passengers[msg.sender].balance + (insurances[_policy].cost * 1.5);
+        emit InsuranceClaimed(_policy,insurances[_policy].holder,insurances[_policy].flight_id,insurances[_policy].departure_time,(insurances[_policy].cost * 1.5));
     }
     
 
@@ -195,6 +254,12 @@ contract FlightSuretyData {
                             external
                             pure
     {
+        require(passengers[msg.sender].balance > 0,"The account balance is currently empty");
+        uint memory sum = passengers[msg.sender].balance;
+        passengers[msg.sender].balance = 0;
+        address memory temp = msg.sender;
+        temp.transfer(sum);
+        emit BalanceWithdraw(temp,sum);
     }
 
    /**
