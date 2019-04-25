@@ -213,7 +213,8 @@ contract FlightSuretyData {
                             external
                             payable
     {
-        require(msg.value =< 1000000000000000000, "Cannot buy insurance for more than 1 ether");
+        //1000000000000000000
+        require(msg.value =< 1 ether, "Cannot buy insurance for more than 1 ether");
         require((msg.value * 1.5) <= (airlines[_airline_address].balance - airlines[_airline_address].reserved), "The request Airline is sold out of insurances");
         Insurance memory item = Insurance(msg.sender,_airline_address, _flight_id, _departure_time, msg.value, false);
         uint memory count = policies_counter;
@@ -274,7 +275,8 @@ contract FlightSuretyData {
                             payable
     {
         require(airlines[msg.sender].approved == true, "This transaction must be done by from an account of an approvedd airline");
-        if (msg.value >= 10000000000000000000){
+        //10000000000000000000
+        if (msg.value >= 10 ether){
             airlines[msg.sender].balance = msg.value;
             emit AirlineActivated(msg.sender,  airlines[msg.sender].id,  airlines[msg.sender].name);
         }
