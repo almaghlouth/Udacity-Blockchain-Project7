@@ -7,6 +7,26 @@ pragma solidity ^0.4.25;
 import "../node_modules/openzeppelin-solidity/contracts/math/SafeMath.sol";
 
 /************************************************** */
+/* Interface for Data Contract                      */
+/************************************************** */
+
+contract FlightSuretyData {
+    
+    function isOperational() public view returns(bool);    
+    function setOperatingStatus (bool mode) external;
+    function registerAirline (address _from,string _name,address _address) external;
+    function approveAirline (address _from,address _address) external;
+    function buy (address _from, address _airline_address, uint _flight_id, uint _departure_time ) external payable;
+    function creditInsurees (address _from, uint _policy ) external;
+    function pay (address _from) external;
+    function fund (address _from ) public payable;
+    function setAppAddress (address _app) public;
+    function setFlightStatus (address _airline_address, uint _flight_id, uint _departure_time, uint _status) external;
+    function getFlightStatus (address _airline_address, uint _flight_id,  _departure_time) external view returns (uint status);
+    
+}
+
+/************************************************** */
 /* FlightSurety Smart Contract                      */
 /************************************************** */
 contract FlightSuretyApp {
@@ -16,6 +36,10 @@ contract FlightSuretyApp {
     /*                                       DATA VARIABLES                                     */
     /********************************************************************************************/
 
+    bool private operational = true;   
+    
+    FlightSuretyData data;
+    
     // Flight status codees
     uint8 private constant STATUS_CODE_UNKNOWN = 0;
     uint8 private constant STATUS_CODE_ON_TIME = 10;
@@ -50,7 +74,7 @@ contract FlightSuretyApp {
     modifier requireIsOperational() 
     {
          // Modify to call data contract's status
-        require(true, "Contract is currently not operational");  
+        require(isOperational(), "Contract is currently not operational");  
         _;  // All modifiers require an "_" which indicates where the function body will be added
     }
 
@@ -72,11 +96,12 @@ contract FlightSuretyApp {
     *
     */
     constructor
-                                (
+                                (address _data
                                 ) 
                                 public 
     {
         contractOwner = msg.sender;
+        data = Data(_data);
     }
 
     /********************************************************************************************/
@@ -85,44 +110,129 @@ contract FlightSuretyApp {
 
     function isOperational() 
                             public 
-                            pure 
-                            returns(bool) 
+                            returns(bool status) 
     {
-        return true;  // Modify to call data contract's status
+        return operational && data.isOperational();  // Modify to call data contract's status
     }
 
     /********************************************************************************************/
     /*                                     SMART CONTRACT FUNCTIONS                             */
     /********************************************************************************************/
 
+
+    function setAppAddress () public pure;
   
    /**
     * @dev Add an airline to the registration queue
     *
     */   
     function registerAirline
-                            (   
+                            (string _name,
+                            address _address 
                             )
-                            external
-                            pure
-                            returns(bool success, uint256 votes)
+                            public
+                            requireIsOperational
+                            
     {
-        return (success, 0);
+        data.registerAirline(msg.sender,_name,_address);
     }
 
+
+    function approveAirline
+                            (address _address)  
+                            public
+                            requireIsOperational
+    {
+        data.approveAirline(msg.sender,_address);
+    }
 
    /**
     * @dev Register a future flight for insuring.
     *
     */  
-    function registerFlight
-                                (
-                                )
-                                external
-                                pure
+    function setFlightStatus (address _airline_address,
+                            uint _flight_id,
+                            uint _departure_time,
+                            uint _status) 
+                            public
+                            requireIsOperational
     {
-
+        //sec
+        data.setFlightStatus(_airline_address,_flight_id,_departure_time,status);
     }
+    
+    function getFlightStatus (address _airline_address,
+                            uint _flight_id,
+                            uint _departure_time) 
+                            public
+                            view
+                            requireIsOperational
+                            returns (uint status)
+                            
+    {
+        //sec
+        return data.getFlightStatus(_airline_address,_flight_id,_departure_time);
+    }
+    
+    
+    
+       /**
+    * @dev Buy insurance for a flight
+    *
+    */   
+    function buy
+                            (address _airline_address,
+                            uint _flight_id,
+                            uint _departure_time
+                            )
+                            public
+                            payable
+                            requireIsOperational
+    {
+        data.buy.value(msg.value)(msg.sender,_airline_address,_flight_id,_departure_time);
+    }
+
+    /**
+     *  @dev Credits payouts to insurees
+    */
+    function creditInsurees
+                                (uint _policy
+                                )
+                                public
+                                requireIsOperational
+                               
+    {
+        data.creditInsurees(msg.sender, _policy);
+    }
+    
+
+    /**
+     *  @dev Transfers eligible payout funds to insuree
+     *
+    */
+    function pay
+                            ()
+                            public
+                            requireIsOperational
+    {
+        data.pay(msg.sender);
+    }
+
+   /**
+    * @dev Initial funding for the insurance. Unless there are too many delayed flights
+    *      resulting in insurance payouts, the contract should be self-sustaining
+    *
+    */   
+    function fund
+                            ()
+                            public
+                            payable
+                            requireIsOperational
+    {
+        data.fund.value(msg.value)(msg.sender);
+    }
+    
+    
     
    /**
     * @dev Called after oracle has updated flight status
