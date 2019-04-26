@@ -11,7 +11,8 @@ contract FlightSuretyData {
 
     address private contractOwner;                                      // Account used to deploy contract
     bool private operational = true;                                    // Blocks all state changes throughout the contract if false
-
+    address private app;
+    
     struct Airline {
         uint id;
         string name;
@@ -54,7 +55,7 @@ contract FlightSuretyData {
     }
 
     //airline address => flight no => departure => status
-    mapping(address => mapping(uint => mapping(uint => uint)) flights;
+    mapping(address => mapping(uint => mapping(uint => uint))) flights;
 
     /********************************************************************************************/
     /*                                       EVENT DEFINITIONS                                  */
@@ -112,6 +113,12 @@ contract FlightSuretyData {
         require(msg.sender == contractOwner, "Caller is not contract owner");
         _;
     }
+    
+    modifier fromAppAdress()
+    {
+        require(msg.sender == app, "Caller is not the linked application");
+        _;
+    }
 
     /********************************************************************************************/
     /*                                       UTILITY FUNCTIONS                                  */
@@ -156,21 +163,23 @@ contract FlightSuretyData {
     *
     */   
     function registerAirline
-                            (string _name,
+                            (address _from,
+                            string _name,
                             address _address   
                             )
                             external
+                            requireIsOperational fromAppAdress
     {
         uint _id = airline_counter;
         if (airline_counter == 0) {
-            Airline memory item = Airline(_id, _name, true, false, 0,0,0);
+            Airline memory item = Airline(_id, _name, true, false, 0,0,0,0);
             airline_counter++;
             airlines[_address] = item;
             emit AirlineRegistered(_address, _id, _name);
             emit AirlineApproved(_address, _id, _name);
         } else if (airline_counter > 0 && airline_counter <= 4) {
-            require(airlines[msg.sender].approved == true, "This transaction must be done by from an account of an approvedd airline");
-            Airline memory item2 = Airline(_id, _name, true, false, 0,,0,1,1);
+            require(airlines[_from].approved == true, "This transaction must be done by from an account of an approvedd airline");
+            Airline memory item2 = Airline(_id, _name, true, false, 0,0,1,1);
             airline_counter++;
             airlines[_address] = item2;
             emit AirlineRegistered(_address, _id, _name);
@@ -187,14 +196,16 @@ contract FlightSuretyData {
 
 
     function approveAirline
-                            (address _address)  
+                            (address _from,
+                            address _address)  
                             external
+                            requireIsOperational fromAppAdress
     {
         require(airlines[_address].approved == true, "This Airline already got approved");
-        require(airlines[msg.sender].approved == true, "This transaction must be done by from an account of an approvedd airline");
-        require(voters_record[_address][msg.sender] == true, "This account already approved this airline");
+        require(airlines[_from].approved == true, "This transaction must be done by from an account of an approvedd airline");
+        require(voters_record[_address][_from] == true, "This account already approved this airline");
         airlines[_address].gained_votes++;
-        voters_record[_address][msg.sender]=true;
+        voters_record[_address][_from]=true;
         if (airlines[_address].gained_votes == airlines[_address].needed_votes) {
             airlines[_address].approved = true;
             emit AirlineRegistered(_address,  airlines[_address].id,  airlines[_address].name);
@@ -206,42 +217,46 @@ contract FlightSuretyData {
     *
     */   
     function buy
-                            (address _airline_address,
+                            (address _from,
+                            address _airline_address,
                             uint _flight_id,
                             uint _departure_time
                             )
                             external
                             payable
+                            requireIsOperational fromAppAdress
     {
         //1000000000000000000
-        require(msg.value =< 1 ether, "Cannot buy insurance for more than 1 ether");
-        require((msg.value * 1.5) <= (airlines[_airline_address].balance - airlines[_airline_address].reserved), "The request Airline is sold out of insurances");
-        Insurance memory item = Insurance(msg.sender,_airline_address, _flight_id, _departure_time, msg.value, false);
-        uint memory count = policies_counter;
+        require(msg.value <= 1 ether, "Cannot buy insurance for more than 1 ether");
+        require(((msg.value * 3) / 2) <= (airlines[_airline_address].balance - airlines[_airline_address].reserved), "The request Airline is sold out of insurances");
+        Insurance memory item = Insurance(_from,_airline_address, _flight_id, _departure_time, msg.value, false);
+        uint count = policies_counter;
         insurances[count] = item;
         policies_counter++;
-        airlines[_airline_address].reserved = airlines[_airline_address].reserved + (msg.value * 1.5);
+        airlines[_airline_address].reserved = airlines[_airline_address].reserved + ((msg.value * 3)/2);
         airlines[_airline_address].balance = airlines[_airline_address].reserved + msg.value;
-        emit InsuranceBought(count,msg.sender,_flight_id,_departure_time,msg.value);
+        emit InsuranceBought(count,_from,_flight_id,_departure_time,msg.value);
     }
 
     /**
      *  @dev Credits payouts to insurees
     */
     function creditInsurees
-                                (uint _policy
+                                (address _from,
+                                uint _policy
                                 )
                                 external
-                                pure
+                                requireIsOperational fromAppAdress
+                               
     {
-        require(insurances[_policy].calimed == false, "Policy Already Claimed");
+        require(insurances[_policy].claimed == false, "Policy Already Claimed");
         require(flights[insurances[_policy].airline_address][insurances[_policy].flight_id][insurances[_policy].departure_time] == 20,"The current flight status is not delayed duo to airline failure");
-        require((airlines[insurances[_policy].airline_address].balance >= (insurances[_policy].cost * 1.5)) && (airlines[insurances[_policy].airline_address].reserved >= (insurances[_policy].cost * 1.5)),"The airline cannot provide insurance payment at the moment");
-        insurances[_policy].calimed = true;
-        airlines[insurances[_policy].airline_address].balance = airlines[insurances[_policy].airline_address].balance - (insurances[_policy].cost * 1.5);
-        airlines[insurances[_policy].airline_address].reserved = airlines[insurances[_policy].airline_address].reserved - (insurances[_policy].cost * 1.5);
-        passengers[msg.sender].balance = passengers[msg.sender].balance + (insurances[_policy].cost * 1.5);
-        emit InsuranceClaimed(_policy,insurances[_policy].holder,insurances[_policy].flight_id,insurances[_policy].departure_time,(insurances[_policy].cost * 1.5));
+        require((airlines[insurances[_policy].airline_address].balance >= ((insurances[_policy].cost * 3)/ 2 )) && (airlines[insurances[_policy].airline_address].reserved >= ((insurances[_policy].cost * 3)/2)),"The airline cannot provide insurance payment at the moment");
+        insurances[_policy].claimed = true;
+        airlines[insurances[_policy].airline_address].balance = airlines[insurances[_policy].airline_address].balance - ((insurances[_policy].cost * 3)/ 2 );
+        airlines[insurances[_policy].airline_address].reserved = airlines[insurances[_policy].airline_address].reserved - ((insurances[_policy].cost * 3)/ 2 );
+        passengers[_from].balance = passengers[_from].balance + ((insurances[_policy].cost * 3)/ 2 );
+        emit InsuranceClaimed(_policy,insurances[_policy].holder,insurances[_policy].flight_id,insurances[_policy].departure_time,((insurances[_policy].cost * 3)/ 2 ));
     }
     
 
@@ -250,15 +265,15 @@ contract FlightSuretyData {
      *
     */
     function pay
-                            (
-                            )
+                            (address _from)
                             external
-                            pure
+                            requireIsOperational fromAppAdress
+                            
     {
-        require(passengers[msg.sender].balance > 0,"The account balance is currently empty");
-        uint memory sum = passengers[msg.sender].balance;
-        passengers[msg.sender].balance = 0;
-        address memory temp = msg.sender;
+        require(passengers[_from].balance > 0,"The account balance is currently empty");
+        uint sum = passengers[_from].balance;
+        passengers[_from].balance = 0;
+        address temp = _from;
         temp.transfer(sum);
         emit BalanceWithdraw(temp,sum);
     }
@@ -269,20 +284,59 @@ contract FlightSuretyData {
     *
     */   
     function fund
-                            (   
+                            (address _from
                             )
                             public
                             payable
+                            requireIsOperational fromAppAdress
     {
-        require(airlines[msg.sender].approved == true, "This transaction must be done by from an account of an approvedd airline");
+        require(airlines[_from].approved == true, "This transaction must be done by from an account of an approvedd airline");
         //10000000000000000000
         if (msg.value >= 10 ether){
-            airlines[msg.sender].balance = msg.value;
-            emit AirlineActivated(msg.sender,  airlines[msg.sender].id,  airlines[msg.sender].name);
+            airlines[_from].balance = msg.value;
+            emit AirlineActivated(_from,  airlines[_from].id,  airlines[_from].name);
         }
 
     }
-
+    
+    function setAppAddress (address _app) public requireContractOwner {
+        app = _app;
+    }
+    
+    //airline address => flight no => departure => status
+    
+    function setFlightStatus (address _airline_address,
+                            uint _flight_id,
+                            uint _departure_time,
+                            uint _status) 
+                            external
+                            requireIsOperational
+    {
+        //sec
+        flights[_airline_address][_flight_id][_departure_time] = _status;
+    }
+    
+    function getFlightStatus (address _airline_address,
+                            uint _flight_id,
+                            uint _departure_time) 
+                            external
+                            view
+                            requireIsOperational
+                            returns (uint status)
+                            
+    {
+        //sec
+        return flights[_airline_address][_flight_id][_departure_time];
+    }
+    
+    /*
+    function getAirlineInfo (address _address) external requireIsOperational fromAppAdress
+    returns (){
+    */
+     
+    }
+    
+        /*
     function getFlightKey
                         (
                             address airline,
@@ -295,7 +349,7 @@ contract FlightSuretyData {
     {
         return keccak256(abi.encodePacked(airline, flight, timestamp));
     }
-
+        */
     /**
     * @dev Fallback function for funding smart contract.
     *
