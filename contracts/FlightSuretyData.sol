@@ -310,7 +310,7 @@ contract FlightSuretyData {
                             uint _departure_time,
                             uint _status) 
                             external
-                            requireIsOperational
+                            requireIsOperational fromAppAdress
     {
         //sec
         flights[_airline_address][_flight_id][_departure_time] = _status;

@@ -6,25 +6,6 @@ pragma solidity ^0.4.25;
 
 //import "../node_modules/openzeppelin-solidity/contracts/math/SafeMath.sol";
 
-/************************************************** */
-/* Interface for Data Contract                      */
-/************************************************** */
-
-contract FlightSuretyData {
-    
-    function isOperational() public view returns(bool);    
-    function setOperatingStatus (bool mode) external;
-    function registerAirline (address _from,string _name,address _address) external;
-    function approveAirline (address _from,address _address) external;
-    function buy (address _from, address _airline_address, uint _flight_id, uint _departure_time ) external payable;
-    function creditInsurees (address _from, uint _policy ) external;
-    function pay (address _from) external;
-    function fund (address _from ) public payable;
-    function setAppAddress (address _app) public;
-    function setFlightStatus (address _airline_address, uint _flight_id, uint _departure_time, uint _status) external;
-    function getFlightStatus (address _airline_address, uint _flight_id, uint _departure_time) external view returns (uint status);
-    
-}
 
 /************************************************** */
 /* FlightSurety Smart Contract                      */
@@ -152,9 +133,19 @@ contract FlightSuretyApp {
 
     function isOperational() 
                             public view
-                            returns(bool status) 
+                            returns(bool) 
     {
         return operational && data.isOperational();  // Modify to call data contract's status
+    }
+
+    function setOperatingStatus
+                            (
+                                bool mode
+                            ) 
+                            external
+                            requireContractOwner 
+    {
+        operational = mode;
     }
 
     /********************************************************************************************/
@@ -162,17 +153,19 @@ contract FlightSuretyApp {
     /********************************************************************************************/
 
 
-    function setAppAddress () public pure;
+    function setAppAddress (address _app) public pure {
+        _app = address(0);
+    }
   
    /**
     * @dev Add an airline to the registration queue
     *
     */   
     function registerAirline
-                            (string _name,
+                            ( string _name,
                             address _address 
                             )
-                            public
+                            external
                             requireIsOperational
                             
     {
@@ -182,7 +175,7 @@ contract FlightSuretyApp {
 
     function approveAirline
                             (address _address)  
-                            public
+                            external
                             requireIsOperational
     {
         data.approveAirline(msg.sender,_address);
@@ -196,7 +189,7 @@ contract FlightSuretyApp {
                             uint _flight_id,
                             uint _departure_time,
                             uint _status) 
-                            internal
+                            external
                             requireIsOperational
     {
         //sec
@@ -206,7 +199,7 @@ contract FlightSuretyApp {
     function getFlightStatus (address _airline_address,
                             uint _flight_id,
                             uint _departure_time) 
-                            public
+                            external
                             view
                             requireIsOperational
                             returns (uint status)
@@ -227,7 +220,7 @@ contract FlightSuretyApp {
                             uint _flight_id,
                             uint _departure_time
                             )
-                            public
+                            external
                             payable
                             requireIsOperational
     {
@@ -238,9 +231,9 @@ contract FlightSuretyApp {
      *  @dev Credits payouts to insurees
     */
     function creditInsurees
-                                (uint _policy
+                                ( uint _policy
                                 )
-                                public
+                                external
                                 requireIsOperational
                                
     {
@@ -254,7 +247,7 @@ contract FlightSuretyApp {
     */
     function pay
                             ()
-                            public
+                            external
                             requireIsOperational
     {
         data.pay(msg.sender);
@@ -267,7 +260,7 @@ contract FlightSuretyApp {
     */   
     function fund
                             ()
-                            public
+                            external
                             payable
                             requireIsOperational
     {
@@ -301,7 +294,7 @@ contract FlightSuretyApp {
                             uint flight,
                             uint256 timestamp                            
                         )
-                        external
+                        public
     {
         uint8 index = getRandomIndex(msg.sender);
 
@@ -382,7 +375,7 @@ contract FlightSuretyApp {
 
         
             // Handle flight status as appropriate
-            setFlightStatus(airline,flight,timestamp,statusCode);
+            data.setFlightStatus(airline,flight,timestamp,statusCode);
             oracleResponses[key].isOpen = false;
             emit FlightStatusInfo(airline, flight, timestamp, statusCode);
         }
@@ -453,3 +446,24 @@ function generateIndexes (address account) internal returns (uint8[3])
 // endregion
 
 }   
+
+
+/************************************************** */
+/* Interface for Data Contract                      */
+/************************************************** */
+
+contract FlightSuretyData {
+    
+    function isOperational() public view returns(bool);    
+    function setOperatingStatus (bool mode) external;
+    function registerAirline (address _from,string _name,address _address) external;
+    function approveAirline (address _from,address _address) external;
+    function buy (address _from, address _airline_address, uint _flight_id, uint _departure_time ) external payable;
+    function creditInsurees (address _from, uint _policy ) external;
+    function pay (address _from) external;
+    function fund (address _from ) public payable;
+    function setAppAddress (address _app) public;
+    function setFlightStatus (address _airline_address, uint _flight_id, uint _departure_time, uint _status) external;
+    function getFlightStatus (address _airline_address, uint _flight_id, uint _departure_time) external view returns (uint status);
+    
+}
