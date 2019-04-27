@@ -1,9 +1,9 @@
 pragma solidity ^0.4.25;
 
-import "../node_modules/openzeppelin-solidity/contracts/math/SafeMath.sol";
+//import "../node_modules/openzeppelin-solidity/contracts/math/SafeMath.sol";
 
 contract FlightSuretyData {
-    using SafeMath for uint256;
+    //using SafeMath for uint256;
 
     /********************************************************************************************/
     /*                                       DATA VARIABLES                                     */
@@ -332,11 +332,11 @@ contract FlightSuretyData {
     /*
     function getAirlineInfo (address _address) external requireIsOperational fromAppAdress
     returns (){
-    */
+    
      
     }
-    
-        /*
+  */  
+/*
     function getFlightKey
                         (
                             address airline,
@@ -354,9 +354,7 @@ contract FlightSuretyData {
     * @dev Fallback function for funding smart contract.
     *
     */
-    function() 
-                            external 
-                            payable 
+    function() public payable 
     {
         //fund();
     }

@@ -4,7 +4,7 @@ pragma solidity ^0.4.25;
 // OpenZeppelin's SafeMath library, when used correctly, protects agains such bugs
 // More info: https://www.nccgroup.trust/us/about-us/newsroom-and-events/blog/2018/november/smart-contract-insecurity-bad-arithmetic/
 
-import "../node_modules/openzeppelin-solidity/contracts/math/SafeMath.sol";
+//import "../node_modules/openzeppelin-solidity/contracts/math/SafeMath.sol";
 
 /************************************************** */
 /* Interface for Data Contract                      */
@@ -22,7 +22,7 @@ contract FlightSuretyData {
     function fund (address _from ) public payable;
     function setAppAddress (address _app) public;
     function setFlightStatus (address _airline_address, uint _flight_id, uint _departure_time, uint _status) external;
-    function getFlightStatus (address _airline_address, uint _flight_id,  _departure_time) external view returns (uint status);
+    function getFlightStatus (address _airline_address, uint _flight_id, uint _departure_time) external view returns (uint status);
     
 }
 
@@ -30,7 +30,7 @@ contract FlightSuretyData {
 /* FlightSurety Smart Contract                      */
 /************************************************** */
 contract FlightSuretyApp {
-    using SafeMath for uint256; // Allow SafeMath functions to be called for all uint256 types (similar to "prototype" in Javascript)
+    //using SafeMath for uint256; // Allow SafeMath functions to be called for all uint256 types (similar to "prototype" in Javascript)
 
     /********************************************************************************************/
     /*                                       DATA VARIABLES                                     */
@@ -50,6 +50,7 @@ contract FlightSuretyApp {
 
     address private contractOwner;          // Account used to deploy contract
 
+    /*
     struct Flight {
         bool isRegistered;
         uint8 statusCode;
@@ -57,7 +58,48 @@ contract FlightSuretyApp {
         address airline;
     }
     mapping(bytes32 => Flight) private flights;
+    */
 
+        // Incremented to add pseudo-randomness at various points
+    uint8 private nonce = 0;    
+
+    // Fee to be paid when registering oracle
+    uint256 public constant REGISTRATION_FEE = 1 ether;
+
+    // Number of oracles that must respond for valid status
+    uint256 private constant MIN_RESPONSES = 3;
+
+
+    struct Oracle {
+        bool isRegistered;
+        uint8[3] indexes;        
+    }
+
+    // Track all registered oracles
+    mapping(address => Oracle) private oracles;
+
+    // Model for responses from oracles
+    struct ResponseInfo {
+        address requester;                              // Account that requested status
+        bool isOpen;                                    // If open, oracle responses are accepted
+        mapping(uint8 => address[]) responses;          // Mapping key is the status code reported
+                                                        // This lets us group responses and identify
+                                                        // the response that majority of the oracles
+    }
+
+    // Track all oracle responses
+    // Key = hash(index, flight, timestamp)
+    mapping(bytes32 => ResponseInfo) private oracleResponses;
+
+    // Event fired each time an oracle submits a response
+    event FlightStatusInfo(address airline, uint flight, uint256 timestamp, uint8 status);
+
+    event OracleReport(address airline, uint flight, uint256 timestamp, uint8 status);
+
+    // Event fired when flight status request is submitted
+    // Oracles track this and if they have a matching index
+    // they fetch data and submit a response
+    event OracleRequest(uint8 index, address airline, uint flight, uint256 timestamp);
  
     /********************************************************************************************/
     /*                                       FUNCTION MODIFIERS                                 */
@@ -101,7 +143,7 @@ contract FlightSuretyApp {
                                 public 
     {
         contractOwner = msg.sender;
-        data = Data(_data);
+        data = FlightSuretyData(_data);
     }
 
     /********************************************************************************************/
@@ -109,7 +151,7 @@ contract FlightSuretyApp {
     /********************************************************************************************/
 
     function isOperational() 
-                            public 
+                            public view
                             returns(bool status) 
     {
         return operational && data.isOperational();  // Modify to call data contract's status
@@ -154,11 +196,11 @@ contract FlightSuretyApp {
                             uint _flight_id,
                             uint _departure_time,
                             uint _status) 
-                            public
+                            internal
                             requireIsOperational
     {
         //sec
-        data.setFlightStatus(_airline_address,_flight_id,_departure_time,status);
+        data.setFlightStatus(_airline_address,_flight_id,_departure_time,_status);
     }
     
     function getFlightStatus (address _airline_address,
@@ -176,7 +218,7 @@ contract FlightSuretyApp {
     
     
     
-       /**
+    /**
     * @dev Buy insurance for a flight
     *
     */   
@@ -237,7 +279,8 @@ contract FlightSuretyApp {
    /**
     * @dev Called after oracle has updated flight status
     *
-    */  
+    */ 
+    /* 
     function processFlightStatus
                                 (
                                     address airline,
@@ -249,13 +292,13 @@ contract FlightSuretyApp {
                                 pure
     {
     }
-
+    */
 
     // Generate a request for oracles to fetch flight information
     function fetchFlightStatus
                         (
                             address airline,
-                            string flight,
+                            uint flight,
                             uint256 timestamp                            
                         )
                         external
@@ -275,46 +318,7 @@ contract FlightSuretyApp {
 
 // region ORACLE MANAGEMENT
 
-    // Incremented to add pseudo-randomness at various points
-    uint8 private nonce = 0;    
 
-    // Fee to be paid when registering oracle
-    uint256 public constant REGISTRATION_FEE = 1 ether;
-
-    // Number of oracles that must respond for valid status
-    uint256 private constant MIN_RESPONSES = 3;
-
-
-    struct Oracle {
-        bool isRegistered;
-        uint8[3] indexes;        
-    }
-
-    // Track all registered oracles
-    mapping(address => Oracle) private oracles;
-
-    // Model for responses from oracles
-    struct ResponseInfo {
-        address requester;                              // Account that requested status
-        bool isOpen;                                    // If open, oracle responses are accepted
-        mapping(uint8 => address[]) responses;          // Mapping key is the status code reported
-                                                        // This lets us group responses and identify
-                                                        // the response that majority of the oracles
-    }
-
-    // Track all oracle responses
-    // Key = hash(index, flight, timestamp)
-    mapping(bytes32 => ResponseInfo) private oracleResponses;
-
-    // Event fired each time an oracle submits a response
-    event FlightStatusInfo(address airline, string flight, uint256 timestamp, uint8 status);
-
-    event OracleReport(address airline, string flight, uint256 timestamp, uint8 status);
-
-    // Event fired when flight status request is submitted
-    // Oracles track this and if they have a matching index
-    // they fetch data and submit a response
-    event OracleRequest(uint8 index, address airline, string flight, uint256 timestamp);
 
 
     // Register an oracle with the contract
@@ -358,14 +362,13 @@ contract FlightSuretyApp {
                         (
                             uint8 index,
                             address airline,
-                            string flight,
+                            uint flight,
                             uint256 timestamp,
                             uint8 statusCode
                         )
                         external
     {
         require((oracles[msg.sender].indexes[0] == index) || (oracles[msg.sender].indexes[1] == index) || (oracles[msg.sender].indexes[2] == index), "Index does not match oracle request");
-
 
         bytes32 key = keccak256(abi.encodePacked(index, airline, flight, timestamp)); 
         require(oracleResponses[key].isOpen, "Flight or timestamp do not match oracle request");
@@ -377,14 +380,17 @@ contract FlightSuretyApp {
         emit OracleReport(airline, flight, timestamp, statusCode);
         if (oracleResponses[key].responses[statusCode].length >= MIN_RESPONSES) {
 
-            emit FlightStatusInfo(airline, flight, timestamp, statusCode);
-
+        
             // Handle flight status as appropriate
-            processFlightStatus(airline, flight, timestamp, statusCode);
+            setFlightStatus(airline,flight,timestamp,statusCode);
+            oracleResponses[key].isOpen = false;
+            emit FlightStatusInfo(airline, flight, timestamp, statusCode);
         }
+
+        
     }
 
-
+/*
     function getFlightKey
                         (
                             address airline,
@@ -397,14 +403,9 @@ contract FlightSuretyApp {
     {
         return keccak256(abi.encodePacked(airline, flight, timestamp));
     }
-
-    // Returns array of three non-duplicating integers from 0-9
-    function generateIndexes
-                            (                       
-                                address account         
-                            )
-                            internal
-                            returns(uint8[3])
+*/
+    // Returns array of three non-duplicating integers from 0-9//
+function generateIndexes (address account) internal returns (uint8[3])
     {
         uint8[3] memory indexes;
         indexes[0] = getRandomIndex(account);
@@ -424,8 +425,7 @@ contract FlightSuretyApp {
 
     // Returns array of three non-duplicating integers from 0-9
     function getRandomIndex
-                            (
-                                address account
+                            (address account
                             )
                             internal
                             returns (uint8)
@@ -442,6 +442,14 @@ contract FlightSuretyApp {
         return random;
     }
 
+    /**
+    * @dev Fallback function for funding smart contract.
+    *
+    */
+    function() public payable 
+    {
+        //fund();
+    }
 // endregion
 
 }   
