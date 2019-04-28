@@ -1,9 +1,9 @@
-pragma solidity ^0.4.25;
+pragma solidity 0.4.25;
 
-//import "../node_modules/openzeppelin-solidity/contracts/math/SafeMath.sol";
+import "../node_modules/openzeppelin-solidity/contracts/math/SafeMath.sol";
 
 contract FlightSuretyData {
-    //using SafeMath for uint256;
+    using SafeMath for uint256;
 
     /********************************************************************************************/
     /*                                       DATA VARIABLES                                     */
@@ -12,7 +12,7 @@ contract FlightSuretyData {
     address private contractOwner;                                      // Account used to deploy contract
     bool private operational = true;                                    // Blocks all state changes throughout the contract if false
     address private app;
-    
+
     struct Airline {
         uint id;
         string name;
@@ -114,9 +114,10 @@ contract FlightSuretyData {
         _;
     }
     
+    //enhance the contract protection post deployment to only recive from App
     modifier fromAppAdress()
     {
-        require(msg.sender == app, "Caller is not the linked application");
+        require(app == address(0) || msg.sender == app, "Caller is not the linked application");
         _;
     }
 
@@ -148,7 +149,7 @@ contract FlightSuretyData {
                                 bool mode
                             ) 
                             external
-                            requireContractOwner 
+                            requireContractOwner
     {
         operational = mode;
     }
@@ -168,8 +169,10 @@ contract FlightSuretyData {
                             address _address   
                             )
                             external
-                            requireIsOperational fromAppAdress
+                            requireIsOperational
+                            fromAppAdress
     {
+        require((airlines[_address].approved == false), "Already registred");
         uint _id = airline_counter;
         if (airline_counter == 0) {
             Airline memory item = Airline(_id, _name, true, false, 0,0,0,0);
@@ -178,7 +181,7 @@ contract FlightSuretyData {
             emit AirlineRegistered(_address, _id, _name);
             emit AirlineApproved(_address, _id, _name);
         } else if (airline_counter > 0 && airline_counter <= 4) {
-            require(airlines[_from].approved == true, "This transaction must be done by from an account of an approvedd airline");
+            require((airlines[_from].approved == true && airlines[_from].active == true), "This transaction must be done by from an account of an approved and active airline");
             Airline memory item2 = Airline(_id, _name, true, false, 0,0,1,1);
             airline_counter++;
             airlines[_address] = item2;
@@ -186,6 +189,7 @@ contract FlightSuretyData {
             emit AirlineApproved(_address, _id, _name);
         } else if (airline_counter > 4) {
             //require(airlines[msg.sender].approved == true, "This transaction must be done by from an account of an approvedd airline");
+            require(_address == _from, "Must registre from same account");
             uint _needed = ((_id / 2 ) + ( _id % 2 ));
             Airline memory item3 = Airline(_id, _name, false, false, 0, 0,_needed,1);
             airline_counter++;
@@ -194,12 +198,22 @@ contract FlightSuretyData {
         }
     }
 
+   function AirlineStatus
+                            (address _address)
+                            external view
+                            requireIsOperational
+                            fromAppAdress
+                            returns (bool status)
+    {
+        return airlines[_address].approved && airlines[_address].active;
+    }
 
     function approveAirline
                             (address _from,
                             address _address)  
                             external
-                            requireIsOperational fromAppAdress
+                            requireIsOperational
+                            fromAppAdress
     {
         require(airlines[_address].approved == true, "This Airline already got approved");
         require(airlines[_from].approved == true, "This transaction must be done by from an account of an approvedd airline");
@@ -224,10 +238,11 @@ contract FlightSuretyData {
                             )
                             external
                             payable
-                            requireIsOperational fromAppAdress
+                            requireIsOperational
+                            fromAppAdress
     {
         //1000000000000000000
-        require(msg.value <= 1 ether, "Cannot buy insurance for more than 1 ether");
+        require(msg.value <= 1000000000000000000, "Cannot buy insurance for more than 1 ether");
         require(((msg.value * 3) / 2) <= (airlines[_airline_address].balance - airlines[_airline_address].reserved), "The request Airline is sold out of insurances");
         Insurance memory item = Insurance(_from,_airline_address, _flight_id, _departure_time, msg.value, false);
         uint count = policies_counter;
@@ -246,7 +261,8 @@ contract FlightSuretyData {
                                 uint _policy
                                 )
                                 external
-                                requireIsOperational fromAppAdress
+                                requireIsOperational
+                                fromAppAdress
                                
     {
         require(insurances[_policy].claimed == false, "Policy Already Claimed");
@@ -267,8 +283,8 @@ contract FlightSuretyData {
     function pay
                             (address _from)
                             external
-                            requireIsOperational fromAppAdress
-                            
+                            requireIsOperational
+                            fromAppAdress         
     {
         require(passengers[_from].balance > 0,"The account balance is currently empty");
         uint sum = passengers[_from].balance;
@@ -286,16 +302,17 @@ contract FlightSuretyData {
     function fund
                             (address _from
                             )
-                            public
+                            external
                             payable
-                            requireIsOperational fromAppAdress
+                            requireIsOperational
+                            fromAppAdress
     {
         require(airlines[_from].approved == true, "This transaction must be done by from an account of an approvedd airline");
-        //10000000000000000000
-        if (msg.value >= 10 ether){
+        require(msg.value >= 10000000000000000000, "The Value must be 10 ether more");
+        //1000000000000000000
             airlines[_from].balance = msg.value;
+            airlines[_from].active = true;
             emit AirlineActivated(_from,  airlines[_from].id,  airlines[_from].name);
-        }
 
     }
     
@@ -310,7 +327,8 @@ contract FlightSuretyData {
                             uint _departure_time,
                             uint _status) 
                             external
-                            requireIsOperational fromAppAdress
+                            requireIsOperational
+                            fromAppAdress
     {
         //sec
         flights[_airline_address][_flight_id][_departure_time] = _status;
@@ -330,7 +348,7 @@ contract FlightSuretyData {
     }
     
     /*
-    function getAirlineInfo (address _address) external requireIsOperational fromAppAdress
+    function getAirlineInfo (address _address) external requireIsOperational 
     returns (){
     
      

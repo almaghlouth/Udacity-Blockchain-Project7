@@ -1,17 +1,17 @@
-pragma solidity ^0.4.25;
+pragma solidity 0.4.25;
 
 // It's important to avoid vulnerabilities due to numeric overflow bugs
 // OpenZeppelin's SafeMath library, when used correctly, protects agains such bugs
 // More info: https://www.nccgroup.trust/us/about-us/newsroom-and-events/blog/2018/november/smart-contract-insecurity-bad-arithmetic/
 
-//import "../node_modules/openzeppelin-solidity/contracts/math/SafeMath.sol";
+import "../node_modules/openzeppelin-solidity/contracts/math/SafeMath.sol";
 
 
 /************************************************** */
 /* FlightSurety Smart Contract                      */
 /************************************************** */
 contract FlightSuretyApp {
-    //using SafeMath for uint256; // Allow SafeMath functions to be called for all uint256 types (similar to "prototype" in Javascript)
+    using SafeMath for uint256; // Allow SafeMath functions to be called for all uint256 types (similar to "prototype" in Javascript)
 
     /********************************************************************************************/
     /*                                       DATA VARIABLES                                     */
@@ -125,6 +125,7 @@ contract FlightSuretyApp {
     {
         contractOwner = msg.sender;
         data = FlightSuretyData(_data);
+        data.registerAirline(msg.sender,"Air One",msg.sender);
     }
 
     /********************************************************************************************/
@@ -172,6 +173,9 @@ contract FlightSuretyApp {
         data.registerAirline(msg.sender,_name,_address);
     }
 
+    function AirlineStatus(address _address) external view requireIsOperational returns (bool status){
+        return data.AirlineStatus(_address);
+    }
 
     function approveAirline
                             (address _address)  
@@ -461,9 +465,10 @@ contract FlightSuretyData {
     function buy (address _from, address _airline_address, uint _flight_id, uint _departure_time ) external payable;
     function creditInsurees (address _from, uint _policy ) external;
     function pay (address _from) external;
-    function fund (address _from ) public payable;
+    function fund (address _from ) external payable;
     function setAppAddress (address _app) public;
     function setFlightStatus (address _airline_address, uint _flight_id, uint _departure_time, uint _status) external;
     function getFlightStatus (address _airline_address, uint _flight_id, uint _departure_time) external view returns (uint status);
+    function AirlineStatus (address _address) external view returns (bool status);
     
 }
