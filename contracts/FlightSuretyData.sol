@@ -180,18 +180,18 @@ contract FlightSuretyData {
             airlines[_address] = item;
             emit AirlineRegistered(_address, _id, _name);
             emit AirlineApproved(_address, _id, _name);
-        } else if (airline_counter > 0 && airline_counter <= 4) {
+        } else if (airline_counter > 0 && airline_counter < 4) {
             require((airlines[_from].approved == true && airlines[_from].active == true), "This transaction must be done by from an account of an approved and active airline");
             Airline memory item2 = Airline(_id, _name, true, false, 0,0,1,1);
             airline_counter++;
             airlines[_address] = item2;
             emit AirlineRegistered(_address, _id, _name);
             emit AirlineApproved(_address, _id, _name);
-        } else if (airline_counter > 4) {
+        } else if (airline_counter >= 4) {
             //require(airlines[msg.sender].approved == true, "This transaction must be done by from an account of an approvedd airline");
-            require(_address == _from, "Must registre from same account");
-            uint _needed = ((_id / 2 ) + ( _id % 2 ));
-            Airline memory item3 = Airline(_id, _name, false, false, 0, 0,_needed,1);
+            require(_address == _from, "Must apply from same account");
+            uint _needed = ((airline_counter / 2 ) + ( airline_counter % 2 ));
+            Airline memory item3 = Airline(_id, _name, false, false, 0, 0,_needed,0);
             airline_counter++;
             airlines[_address] = item3;
             emit AirlineRegistered(_address, _id, _name);
@@ -215,14 +215,16 @@ contract FlightSuretyData {
                             requireIsOperational
                             fromAppAdress
     {
-        require(airlines[_address].approved == true, "This Airline already got approved");
-        require(airlines[_from].approved == true, "This transaction must be done by from an account of an approvedd airline");
-        require(voters_record[_address][_from] == true, "This account already approved this airline");
+        require(airlines[_address].approved == false, "This Airline already got approved");
+        require(airlines[_from].approved == true && airlines[_from].active == true, "This transaction must be done by from an account of an approvedd airline");
+        require(voters_record[_address][_from] == false, "This account already approved this airline");
+
         airlines[_address].gained_votes++;
-        voters_record[_address][_from]=true;
+        voters_record[_address][_from] = true;
+
         if (airlines[_address].gained_votes == airlines[_address].needed_votes) {
             airlines[_address].approved = true;
-            emit AirlineRegistered(_address,  airlines[_address].id,  airlines[_address].name);
+            emit AirlineApproved(_address,  airlines[_address].id,  airlines[_address].name);
         }
     }
 
@@ -307,7 +309,7 @@ contract FlightSuretyData {
                             requireIsOperational
                             fromAppAdress
     {
-        require(airlines[_from].approved == true, "This transaction must be done by from an account of an approvedd airline");
+        require(airlines[_from].approved == true, "funding transaction must be done by from an account of an approvedd airline");
         require(msg.value >= 10000000000000000000, "The Value must be 10 ether more");
         //1000000000000000000
             airlines[_from].balance = msg.value;
