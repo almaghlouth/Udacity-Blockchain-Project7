@@ -1,4 +1,4 @@
-pragma solidity 0.4.25;
+pragma solidity ^0.4.25;
 
 import "../node_modules/openzeppelin-solidity/contracts/math/SafeMath.sol";
 
@@ -38,8 +38,8 @@ contract FlightSuretyData {
     struct Insurance {
         address holder;
         address airline_address;
-        uint flight_id;
-        uint departure_time;
+        uint32 flight_id;
+        uint32 departure_time;
         uint cost;
         bool claimed;        
     }
@@ -48,14 +48,14 @@ contract FlightSuretyData {
 
     struct Flight {
         address airline_address;
-        uint flight_id;
-        uint departure_time;
+        uint32 flight_id;
+        uint32 departure_time;
         bool registred;
-        uint status;
+        uint32 status;
     }
 
     //airline address => flight no => departure => status
-    mapping(address => mapping(uint => mapping(uint => uint))) flights;
+    mapping(address => mapping(uint32 => mapping(uint32 => uint32))) flights;
 
     /********************************************************************************************/
     /*                                       EVENT DEFINITIONS                                  */
@@ -65,8 +65,8 @@ contract FlightSuretyData {
     event AirlineApproved(address _address, uint id, string name);
     event AirlineActivated(address _address, uint id, string name);
 
-    event InsuranceBought(uint policy, address holder,uint flight_id, uint depature_time, uint price);
-    event InsuranceClaimed(uint policy, address holder,uint flight_id, uint depature_time, uint amount);
+    event InsuranceBought(uint policy, address holder,uint32 flight_id, uint32 depature_time, uint price);
+    event InsuranceClaimed(uint policy, address holder,uint32 flight_id, uint32 depature_time, uint amount);
     event BalanceWithdraw(address holder, uint amount);
 
 
@@ -235,8 +235,8 @@ contract FlightSuretyData {
     function buy
                             (address _from,
                             address _airline_address,
-                            uint _flight_id,
-                            uint _departure_time
+                            uint32 _flight_id,
+                            uint32 _departure_time
                             )
                             external
                             payable
@@ -325,9 +325,9 @@ contract FlightSuretyData {
     //airline address => flight no => departure => status
     
     function setFlightStatus (address _airline_address,
-                            uint _flight_id,
-                            uint _departure_time,
-                            uint _status) 
+                            uint32 _flight_id,
+                            uint32 _departure_time,
+                            uint32 _status) 
                             external
                             requireIsOperational
                             fromAppAdress
@@ -337,12 +337,12 @@ contract FlightSuretyData {
     }
     
     function getFlightStatus (address _airline_address,
-                            uint _flight_id,
-                            uint _departure_time) 
+                            uint32 _flight_id,
+                            uint32 _departure_time) 
                             external
                             view
                             requireIsOperational
-                            returns (uint status)
+                            returns (uint32 status)
                             
     {
         //sec

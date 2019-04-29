@@ -170,10 +170,10 @@ contract("Flight Surety Tests", async accounts => {
   it("can register oracles", async () => {
     await config.flightSuretyApp.registerOracle({
       from: accounts[8],
-      value: 10000000000000000000
+      value: 1000000000000000000
     });
     let result = await config.flightSuretyApp.getMyIndexes.call({
-      from: accounts[a]
+      from: accounts[8]
     });
     console.log(`Oracle Registered: ${result[0]}, ${result[1]}, ${result[2]}`);
   });

@@ -1,4 +1,4 @@
-pragma solidity 0.4.25;
+pragma solidity ^0.4.25;
 
 // It's important to avoid vulnerabilities due to numeric overflow bugs
 // OpenZeppelin's SafeMath library, when used correctly, protects agains such bugs
@@ -42,7 +42,8 @@ contract FlightSuretyApp {
     */
 
         // Incremented to add pseudo-randomness at various points
-    uint8 private nonce = 0;    
+    uint8 private nonce1 = 1;  
+    uint16 private nonce2 = 999;  
 
     // Fee to be paid when registering oracle
     uint256 public constant REGISTRATION_FEE = 1 ether;
@@ -73,14 +74,14 @@ contract FlightSuretyApp {
     mapping(bytes32 => ResponseInfo) private oracleResponses;
 
     // Event fired each time an oracle submits a response
-    event FlightStatusInfo(address airline, uint flight, uint256 timestamp, uint8 status);
+    event FlightStatusInfo(address airline, uint32 flight, uint32 timestamp, uint8 status);
 
-    event OracleReport(address airline, uint flight, uint256 timestamp, uint8 status);
+    event OracleReport(address airline, uint32 flight, uint32 timestamp, uint8 status);
 
     // Event fired when flight status request is submitted
     // Oracles track this and if they have a matching index
     // they fetch data and submit a response
-    event OracleRequest(uint8 index, address airline, uint flight, uint256 timestamp);
+    event OracleRequest(uint8 index, address airline, uint32 flight, uint32 timestamp);
  
     /********************************************************************************************/
     /*                                       FUNCTION MODIFIERS                                 */
@@ -190,9 +191,9 @@ contract FlightSuretyApp {
     *
     */  
     function setFlightStatus (address _airline_address,
-                            uint _flight_id,
-                            uint _departure_time,
-                            uint _status) 
+                            uint32 _flight_id,
+                            uint32 _departure_time,
+                            uint32 _status) 
                             internal
                             requireIsOperational
     {
@@ -201,8 +202,8 @@ contract FlightSuretyApp {
     }
     
     function getFlightStatus (address _airline_address,
-                            uint _flight_id,
-                            uint _departure_time) 
+                            uint32 _flight_id,
+                            uint32 _departure_time) 
                             external
                             view
                             requireIsOperational
@@ -221,8 +222,8 @@ contract FlightSuretyApp {
     */   
     function buy
                             (address _airline_address,
-                            uint _flight_id,
-                            uint _departure_time
+                            uint32 _flight_id,
+                            uint32 _departure_time
                             )
                             external
                             payable
@@ -295,12 +296,12 @@ contract FlightSuretyApp {
     function fetchFlightStatus
                         (
                             address airline,
-                            uint flight,
-                            uint256 timestamp                            
+                            uint32 flight,
+                            uint32 timestamp                            
                         )
                         public
     {
-        uint8 index = getRandomIndex(msg.sender);
+        uint8 index = getRandomIndex();
 
         // Generate a unique key for storing the request
         bytes32 key = keccak256(abi.encodePacked(index, airline, flight, timestamp));
@@ -326,7 +327,7 @@ contract FlightSuretyApp {
         require(msg.value >= REGISTRATION_FEE, "Registration fee is required");
         require(oracles[msg.sender].isRegistered == false,"Oracle already Registered");
 
-        uint8[3] memory indexes = generateIndexes(msg.sender);
+        uint8[3] memory indexes = generateIndexes();
 
         oracles[msg.sender] = Oracle({
                                         isRegistered: true,
@@ -356,8 +357,8 @@ contract FlightSuretyApp {
                         (
                             uint8 index,
                             address airline,
-                            uint flight,
-                            uint256 timestamp,
+                            uint32 flight,
+                            uint32 timestamp,
                             uint8 statusCode
                         )
                         external
@@ -399,19 +400,19 @@ contract FlightSuretyApp {
     }
 */
     // Returns array of three non-duplicating integers from 0-9//
-function generateIndexes (address account) internal returns (uint8[3])
+function generateIndexes () internal returns (uint8[3])
     {
         uint8[3] memory indexes;
-        indexes[0] = getRandomIndex(account);
+        indexes[0] = getRandomIndex();
         
         indexes[1] = indexes[0];
         while(indexes[1] == indexes[0]) {
-            indexes[1] = getRandomIndex(account);
+            indexes[1] = getRandomIndex();
         }
 
         indexes[2] = indexes[1];
         while((indexes[2] == indexes[0]) || (indexes[2] == indexes[1])) {
-            indexes[2] = getRandomIndex(account);
+            indexes[2] = getRandomIndex();
         }
 
         return indexes;
@@ -419,7 +420,7 @@ function generateIndexes (address account) internal returns (uint8[3])
 
     // Returns array of three non-duplicating integers from 0-9
     function getRandomIndex
-                            (address account
+                            (
                             )
                             internal
                             returns (uint8)
@@ -427,10 +428,14 @@ function generateIndexes (address account) internal returns (uint8[3])
         uint8 maxValue = 10;
 
         // Pseudo random number...the incrementing nonce adds variation
-        uint8 random = uint8(uint256(keccak256(abi.encodePacked(blockhash(block.number - nonce++), account))) % maxValue);
+        uint8 random = uint8(uint32((nonce2--) - (nonce1++)) % maxValue);
 
-        if (nonce > 250) {
-            nonce = 0;  // Can only fetch blockhashes for last 256 blocks so we adapt
+        if (nonce1 > 250) {
+            nonce1 = 1;  
+        }
+        
+        if (nonce2 <= 1) {
+            nonce2 = 999;  
         }
 
         return random;
