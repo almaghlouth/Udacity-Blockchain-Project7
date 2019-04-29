@@ -25,14 +25,14 @@ contract("Flight Surety Tests", async accounts => {
   var config;
   before("setup contract", async () => {
     config = await Config(accounts);
-    /*
+
+    //access data only through app
     await config.flightSuretyData.setAppAddress(
       config.flightSuretyApp.address,
       {
         from: accounts[0]
       }
     );
-    */
   });
 
   /****************************************************************************************/
@@ -157,5 +157,24 @@ contract("Flight Surety Tests", async accounts => {
 
     // ASSERT
     assert.equal(status, true);
+  });
+
+  const TEST_ORACLES_COUNT = 10;
+  const STATUS_CODE_UNKNOWN = 0;
+  const STATUS_CODE_ON_TIME = 10;
+  const STATUS_CODE_LATE_AIRLINE = 20;
+  const STATUS_CODE_LATE_WEATHER = 30;
+  const STATUS_CODE_LATE_TECHNICAL = 40;
+  const STATUS_CODE_LATE_OTHER = 50;
+
+  it("can register oracles", async () => {
+    await config.flightSuretyApp.registerOracle({
+      from: accounts[8],
+      value: 10000000000000000000
+    });
+    let result = await config.flightSuretyApp.getMyIndexes.call({
+      from: accounts[a]
+    });
+    console.log(`Oracle Registered: ${result[0]}, ${result[1]}, ${result[2]}`);
   });
 });

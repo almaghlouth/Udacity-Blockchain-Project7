@@ -193,7 +193,7 @@ contract FlightSuretyApp {
                             uint _flight_id,
                             uint _departure_time,
                             uint _status) 
-                            external
+                            internal
                             requireIsOperational
     {
         //sec
@@ -315,9 +315,6 @@ contract FlightSuretyApp {
 
 // region ORACLE MANAGEMENT
 
-
-
-
     // Register an oracle with the contract
     function registerOracle
                             (
@@ -327,6 +324,7 @@ contract FlightSuretyApp {
     {
         // Require registration fee
         require(msg.value >= REGISTRATION_FEE, "Registration fee is required");
+        require(oracles[msg.sender].isRegistered == false,"Oracle already Registered");
 
         uint8[3] memory indexes = generateIndexes(msg.sender);
 
@@ -337,8 +335,7 @@ contract FlightSuretyApp {
     }
 
     function getMyIndexes
-                            (
-                            )
+                            ()
                             view
                             external
                             returns(uint8[3])
