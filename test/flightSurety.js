@@ -160,6 +160,7 @@ contract("Flight Surety Tests", async accounts => {
   });
 
   const TEST_ORACLES_COUNT = 10;
+
   const STATUS_CODE_UNKNOWN = 0;
   const STATUS_CODE_ON_TIME = 10;
   const STATUS_CODE_LATE_AIRLINE = 20;
@@ -169,12 +170,45 @@ contract("Flight Surety Tests", async accounts => {
 
   it("can register oracles", async () => {
     await config.flightSuretyApp.registerOracle({
-      from: accounts[8],
+      from: accounts[0],
       value: 1000000000000000000
     });
     let result = await config.flightSuretyApp.getMyIndexes.call({
-      from: accounts[8]
+      from: accounts[0]
     });
-    console.log(`Oracle Registered: ${result[0]}, ${result[1]}, ${result[2]}`);
+    console.log(
+      `          Oracle Registered: ${result[0]}, ${result[1]}, ${result[2]}`
+    );
+  });
+
+  it("each oracles can register once", async () => {
+    // ACT
+
+    let accessDenied = false;
+    try {
+      await config.flightSuretyApp.registerOracle({
+        from: accounts[0],
+        value: 1000000000000000000
+      });
+    } catch (e) {
+      accessDenied = true;
+    }
+    // ASSERT
+    assert.equal(accessDenied, true);
+  });
+
+  it("multi oracles", async () => {
+    for (var i = 1; i < 50; i++) {
+      await config.flightSuretyApp.registerOracle({
+        from: accounts[i],
+        value: 1000000000000000000
+      });
+      let result = await config.flightSuretyApp.getMyIndexes.call({
+        from: accounts[i]
+      });
+      console.log(
+        `          Oracle Registered: ${result[0]}, ${result[1]}, ${result[2]}`
+      );
+    }
   });
 });

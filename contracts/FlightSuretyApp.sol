@@ -43,7 +43,7 @@ contract FlightSuretyApp {
 
         // Incremented to add pseudo-randomness at various points
     uint8 private nonce1 = 1;  
-    uint16 private nonce2 = 999;  
+    uint16 private nonce2 = 1000;  
 
     // Fee to be paid when registering oracle
     uint256 public constant REGISTRATION_FEE = 1 ether;
@@ -428,14 +428,15 @@ function generateIndexes () internal returns (uint8[3])
         uint8 maxValue = 10;
 
         // Pseudo random number...the incrementing nonce adds variation
-        uint8 random = uint8(uint32((nonce2--) - (nonce1++)) % maxValue);
-
+        uint8 random = uint8(uint32((nonce2) - (nonce1)) % maxValue);
+        nonce1++;
+        nonce2--;
         if (nonce1 > 250) {
             nonce1 = 1;  
         }
         
-        if (nonce2 <= 1) {
-            nonce2 = 999;  
+        if (nonce2 <= 260) {
+            nonce2 = 1000;  
         }
 
         return random;
