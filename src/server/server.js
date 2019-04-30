@@ -1,7 +1,9 @@
 import FlightSuretyApp from "../../build/contracts/FlightSuretyApp.json";
+import FlightSuretyData from "../../build/contracts/FlightSuretyData.json";
 import Config from "./config.json";
 import Web3 from "web3";
 import express from "express";
+const fs = require("fs");
 
 let config = Config["localhost"];
 let web3 = new Web3(
@@ -12,27 +14,15 @@ let flightSuretyApp = new web3.eth.Contract(
   FlightSuretyApp.abi,
   config.appAddress
 );
-//create 5 airlines for the dapp
-/*
-const fs = require("fs");
-
-let list = [
-  { Name: "one", Value: "ss" },
-  { Name: "2", Value: "ss" },
-  { Name: "2", Value: "ss" }
-];
-
-fs.writeFileSync(
-  __dirname + "/../src/dapp/airlines.json",
-  JSON.stringify(list, null, "\t"),
-  "utf-8"
+let flightSuretyData = new web3.eth.Contract(
+  FlightSuretyData.abi,
+  config.dataAddress
 );
-*/
 
-//oracles code
-
-let key = 0;
-
+let key;
+let airline;
+let flight;
+let timestamp;
 let oracles = [];
 
 var x;
@@ -41,39 +31,113 @@ let responses = [0, 10, 20, 20, 20, 30, 40, 50, 20, 20];
 
 //let accounts = web3.eth.accounts;
 web3.eth.getAccounts(async (error, accounts) => {
+  //create 5 airlines for the dapp
+  try {
+    await flightSuretyApp.methods.fund().send({
+      from: accounts[0],
+      value: 10000000000000000000,
+      gas: 3000000
+    });
+    await flightSuretyApp.methods
+      .registerAirline()
+      .send("Air Delta", accounts[10], {
+        from: accounts[0]
+      });
+    await flightSuretyApp.methods.fund().send({
+      from: accounts[10],
+      value: 10000000000000000000,
+      gas: 3000000
+    });
+    await flightSuretyApp.methods
+      .registerAirline()
+      .send("Air Sigma", accounts[11], {
+        from: accounts[0]
+      });
+    await flightSuretyApp.methods.fund().send({
+      from: accounts[11],
+      value: 10000000000000000000,
+      gas: 3000000
+    });
+  } catch (e) {}
+
+  let list = [
+    { Name: "Air One", Value: accounts[0] },
+    { Name: "Air Delta", Value: accounts[10] },
+    { Name: "Air Sigma", Value: accounts[11] }
+  ];
+
+  fs.writeFileSync(
+    "./airlines.json",
+    JSON.stringify(list, null, "\t"),
+    "utf-8"
+  );
+
+  //oracles code
   //create 20+ accounts
   for (var i = 1; i < 45; i++) {
-    await flightSuretyApp.registerOracle({
-      from: accounts[i],
-      value: 1000000000000000000
-    });
-    let result = await flightSuretyApp.getMyIndexes.call({
-      from: accounts[i]
-    });
-    console.log(
-      `          Oracle Registered: ${result[0]}, ${result[1]}, ${result[2]}`
-    );
-    oracles.push({
-      address: accounts[i],
-      index1: result[0],
-      index2: result[1],
-      index3: result[2]
-    });
+    try {
+      await flightSuretyApp.methods.registerOracle().send({
+        from: accounts[i],
+        value: 1000000000000000000,
+        gas: 3000000
+      });
+      let result = await flightSuretyApp.methods.getMyIndexes().call({
+        from: accounts[i]
+      });
+      console.log(
+        `          Oracle Registered: ${result[0]}, ${result[1]}, ${result[2]}`
+      );
+      oracles.push({
+        address: accounts[i],
+        index1: result[0],
+        index2: result[1],
+        index3: result[2]
+      });
+    } catch (e) {}
   }
 
   //watch events give semi random response status
 
-  for (var i = 0; i < oracles.length; i++) {
-    if (
-      oracles[i].index1 == key ||
-      oracles[i].index2 == key ||
-      oracles[i].index2 == key
-    ) {
-      console.log("add: " + oracles[i].address);
-      x = Math.floor(Math.random() * 10);
-      console.log("res: " + responses[x]);
+  flightSuretyApp.events.OracleRequest(
+    {
+      fromBlock: "latest"
+    },
+    async function(err, request) {
+      if (err) {
+        console.log(err);
+      }
+      key = request.returnValues.index;
+      airline = request.returnValues.airline;
+      flight = request.returnValues.flight;
+      timestamp = request.returnValues.timestamp;
+
+      for (var i = 0; i < oracles.length; i++) {
+        if (
+          oracles[i].index1 == key ||
+          oracles[i].index2 == key ||
+          oracles[i].index2 == key
+        ) {
+          x = Math.floor(Math.random() * 10);
+          //console.log("res: " + responses[x]);
+          try {
+            await flightSuretyApp.methods
+              .submitOracleResponse(
+                key,
+                airline,
+                flight,
+                timestamp,
+                responses[x]
+              )
+              .send({
+                from: accounts[i],
+                gas: 3000000
+              });
+            console.log(key + " " + airline + " " + flight + " " + timestamp);
+          } catch (e) {}
+        }
+      }
     }
-  }
+  );
 });
 //console.log(test);
 

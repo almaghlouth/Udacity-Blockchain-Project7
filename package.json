@@ -44,5 +44,7 @@
     "webpack-dev-server": "^3.3.1",
     "webpack-node-externals": "1.7.2"
   },
-  "dependencies": {}
+  "dependencies": {
+    "@babel/runtime": "^7.4.4"
+  }
 }
