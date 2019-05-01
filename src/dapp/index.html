@@ -2,7 +2,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Digital Contents Simple Supply chain</title>
+    <title>Flight Insuarnce</title>
     <link
       href="https://fonts.googleapis.com/css?family=Open+Sans:400,700"
       rel="stylesheet"
@@ -11,7 +11,7 @@
   </head>
 
   <body>
-    <h1>Digital Contents Simple Supply chain</h1>
+    <h1>Flight Insuarnce</h1>
 
     <hr />
     <br />
@@ -19,20 +19,7 @@
     <div>
       <label class="form">Check Flight Status</label>
       Airline:
-      <select id="Airline1">
-        <option value="0x0000000000000000000000000000000000000000"
-          >Air one</option
-        >
-        <option value="0x0000000000000000000000000000000000000000"
-          >Air two</option
-        >
-        <option value="0x0000000000000000000000000000000000000000"
-          >Air three</option
-        >
-        <option value="0x0000000000000000000000000000000000000000"
-          >Air four</option
-        >
-      </select>
+      <select id="Airline1" class="Airline"> </select>
       Flight No:
       <select id="Flight1">
         <option value="1000">1000</option>
@@ -42,15 +29,48 @@
       </select>
       Departure Time:
       <select id="Departure1">
-        <option value="0600">0600</option>
-        <option value="0900">0900</option>
+        <option value="600">0600</option>
+        <option value="900">0900</option>
         <option value="1200">1200</option>
         <option value="1800">1800</option>
       </select>
-      <button id="Go1" onclick="App.status()">Check</button>
+      <button id="Go1">Check</button>
     </div>
     <br />
 
     <span id="details1"></span><br />
+
+    <hr />
+    <br />
+
+    <h1>Buy Insurance on Flight</h1>
+    <div>
+      <label class="form">Check Flight Status</label>
+      Airline:
+      <select id="Airline2" class="Airline"> </select>
+      Flight No:
+      <select id="Flight2">
+        <option value="1000">1000</option>
+        <option value="2000">2000</option>
+        <option value="3000">3000</option>
+        <option value="4000">4000</option>
+      </select>
+      Departure Time:
+      <select id="Departure2">
+        <option value="600">0600</option>
+        <option value="900">0900</option>
+        <option value="1200">1200</option>
+        <option value="1800">1800</option>
+      </select>
+      Enter Price in wei (1 ether Max):
+      <input type="text" id="Price2"></input>
+      <button id="Go2">Buy</button>
+    </div>
+    <br />
+
+    <span id="details2"></span><br />
+
+    <hr />
+    <br />
   </body>
 </html>

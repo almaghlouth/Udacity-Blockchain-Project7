@@ -1,96 +1,129 @@
-// this java script got recycled from project 5 and extended to support the current project
 import FlightSuretyApp from "../../build/contracts/FlightSuretyApp.json";
+import FlightSuretyData from "../../build/contracts/FlightSuretyData.json";
 import Config from "./config.json";
 import { default as Web3 } from "web3";
-//import { default as contract } from "truffle-contract";
 
-//import DCSSCArtifact from "../../build/contracts/DCSSC.json";
+let config = Config["localhost"];
+let web3 = new Web3(
+  new Web3.providers.WebsocketProvider(config.url.replace("http", "ws"))
+);
+web3.eth.defaultAccount = web3.eth.accounts[0];
+let flightSuretyApp = new web3.eth.Contract(
+  FlightSuretyApp.abi,
+  config.appAddress
+);
+let flightSuretyData = new web3.eth.Contract(
+  FlightSuretyData.abi,
+  config.dataAddress
+);
 
-//const DCSSC = contract(DCSSCArtifact);
+function setDetails(message, num) {
+  const status = document.getElementById("details" + num);
+  status.innerHTML = message;
+}
 
-let accounts;
-let account;
+web3.eth.getAccounts(async (error, accounts) => {
+  //fill select menus
+  var m = document.getElementById("Airline1");
+  m.innerHTML =
+    m.innerHTML +
+    '<option value="' +
+    accounts[0] +
+    '"> Air One </option><option value="' +
+    accounts[10] +
+    '"> Air Delta </option><option value="' +
+    accounts[11] +
+    '"> Air Sigma </option>';
+  m = document.getElementById("Airline2");
+  m.innerHTML =
+    m.innerHTML +
+    '<option value="' +
+    accounts[0] +
+    '"> Air One </option><option value="' +
+    accounts[10] +
+    '"> Air Delta </option><option value="' +
+    accounts[11] +
+    '"> Air Sigma </option>';
 
-const fstatus = async () => {
-  const self = this;
-  //const instance = await flightSuretyApp.deployed();
-  const a = document.getElementById("Airline1").value;
-  const f = document.getElementById("Flight1").value;
-  const d = document.getElementById("Departure1").value;
-  const item1 = await self.flightSuretyApp.getFlightStatus(a, f, d, {
-    from: account
+  //let res = await flightSuretyApp.methods.isOperational().call();
+
+  //s
+  document.getElementById("Go1").addEventListener("click", async function() {
+    var air = document.getElementById("Airline1").value;
+    //console.log(air);
+    var flight = document.getElementById("Flight1").value;
+    var time = document.getElementById("Departure1").value;
+    var res = await flightSuretyApp.methods
+      .getFlightStatus(air, flight, time)
+      .call({
+        from: accounts[0],
+        gas: 3000000
+      })
+      .then(res => {
+        return res;
+      })
+      .catch(res => {
+        return res;
+      });
+    setDetails(await res, "1");
   });
-  setDetails(item1, "1");
-};
+  //e
 
-const App = {
-  start: function() {
-    const self = this;
+  //s
+  document.getElementById("Go2").addEventListener("click", async function() {
+    var air = document.getElementById("Airline2").value;
+    //console.log(air);
+    var flight = document.getElementById("Flight2").value;
+    var time = document.getElementById("Departure2").value;
+    var price = document.getElementById("Price2").value;
+    var res;
+    await flightSuretyApp.methods
+      .buy(air, flight, time)
+      .send({
+        from: accounts[0],
+        value: price,
+        gas: 3000000
+      })
+      .then(res => {
+        console.log(res);
+      })
+      .catch(res => {
+        console.log(res);
+        setDetails(res, "2");
+      });
 
-    //DCSSC.setProvider(web3.currentProvider);
-
-    let config = Config["localhost"];
-    let web3 = new Web3(new Web3.providers.HttpProvider(config.url));
-    let flightSuretyApp = new this.web3.eth.Contract(
-      FlightSuretyApp.abi,
-      config.appAddress
-    );
-
-    web3.eth.getAccounts(function(err, accs) {
-      if (err != null) {
-        alert("There was an error fetching your accounts.");
-        return;
+    await flightSuretyData.events.InsuranceBought(
+      {
+        fromBlock: "latest"
+      },
+      async function(error, result) {
+        console.log(result);
       }
-
-      if (accs.length === 0) {
-        alert(
-          "Couldn't get any accounts! Make sure your Ethereum client is configured correctly."
-        );
-        return;
-      }
-
-      accounts = accs;
-      account = accounts[0];
-    });
-  },
-
-  setDetails: function(message, num) {
-    const status = document.getElementById("details" + num);
-    status.innerHTML = message;
-  },
-
-  status: function() {
-    fstatus();
-  }
-};
-
-window.App = App;
-
-window.addEventListener("load", function() {
-  // Checking if Web3 has been injected by the browser (Mist/MetaMask)
-  if (typeof web3 !== "undefined") {
-    console.warn(
-      "Using web3 detected from external source." +
-        " If you find that your accounts don't appear or you have 0 MetaCoin," +
-        " ensure you've configured that source properly." +
-        " If using MetaMask, see the following link." +
-        " Feel free to delete this warning. :)" +
-        " http://truffleframework.com/tutorials/truffle-and-metamask"
     );
-    // Use Mist/MetaMask's provider
-    window.web3 = new Web3(web3.currentProvider);
-  } else {
-    console.warn(
-      "No web3 detected. Falling back to http://127.0.0.1:8545." +
-        " You should remove this fallback when you deploy live, as it's inherently insecure." +
-        " Consider switching to Metamask for development." +
-        " More info here: http://truffleframework.com/tutorials/truffle-and-metamask"
-    );
-    // fallback - use your fallback strategy (local node / hosted node + in-dapp id mgmt / fail)
-    window.web3 = new Web3(
-      new Web3.providers.HttpProvider("http://127.0.0.1:8545")
-    );
-  }
-
-  App.start();
+  });
+  //e
 });
+
+if (typeof web3 !== "undefined") {
+  console.warn(
+    "Using web3 detected from external source." +
+      " If you find that your accounts don't appear or you have 0 MetaCoin," +
+      " ensure you've configured that source properly." +
+      " If using MetaMask, see the following link." +
+      " Feel free to delete this warning. :)" +
+      " http://truffleframework.com/tutorials/truffle-and-metamask"
+  );
+  // Use Mist/MetaMask's provider
+  window.web3 = new Web3(web3.currentProvider);
+} else {
+  console.warn(
+    "No web3 detected. Falling back to http://127.0.0.1:9545." +
+      " You should remove this fallback when you deploy live, as it's inherently insecure." +
+      " Consider switching to Metamask for development." +
+      " More info here: http://truffleframework.com/tutorials/truffle-and-metamask"
+  );
+  // fallback - use your fallback strategy (local node / hosted node + in-dapp id mgmt / fail)
+  window.web3 = new Web3(
+    new Web3.providers.HttpProvider("http://127.0.0.1:8545")
+  );
+}
