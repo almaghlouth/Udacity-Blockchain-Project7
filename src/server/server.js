@@ -38,27 +38,45 @@ web3.eth.getAccounts(async (error, accounts) => {
       value: 10000000000000000000,
       gas: 3000000
     });
+  } catch (e) {
+    console.log(e);
+  }
+  try {
     await flightSuretyApp.methods
       .registerAirline()
       .send("Air Delta", accounts[10], {
         from: accounts[0]
       });
+  } catch (e) {
+    console.log(e);
+  }
+  try {
     await flightSuretyApp.methods.fund().send({
       from: accounts[10],
       value: 10000000000000000000,
       gas: 3000000
     });
+  } catch (e) {
+    console.log(e);
+  }
+  try {
     await flightSuretyApp.methods
       .registerAirline()
       .send("Air Sigma", accounts[11], {
         from: accounts[0]
       });
+  } catch (e) {
+    console.log(e);
+  }
+  try {
     await flightSuretyApp.methods.fund().send({
       from: accounts[11],
       value: 10000000000000000000,
       gas: 3000000
     });
-  } catch (e) {}
+  } catch (e) {
+    console.log(e);
+  }
 
   let list = [
     { Name: "Air One", Value: accounts[0] },
@@ -106,6 +124,7 @@ web3.eth.getAccounts(async (error, accounts) => {
       if (err) {
         console.log(err);
       }
+      console.log("on");
       key = request.returnValues.index;
       airline = request.returnValues.airline;
       flight = request.returnValues.flight;
@@ -132,12 +151,24 @@ web3.eth.getAccounts(async (error, accounts) => {
                 from: accounts[i],
                 gas: 3000000
               });
-            console.log(key + " " + airline + " " + flight + " " + timestamp);
+            console.log(
+              key +
+                " " +
+                airline +
+                " " +
+                flight +
+                " " +
+                timestamp +
+                " " +
+                responses[x]
+            );
           } catch (e) {}
         }
       }
     }
   );
+
+  //setTimeout(spool, 2000);
 });
 //console.log(test);
 

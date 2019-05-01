@@ -43,6 +43,7 @@ contract FlightSuretyData {
         uint cost;
         bool claimed;        
     }
+    mapping(address => mapping(uint32 => mapping(uint32 => bool))) reservelog;
 
     mapping(uint => Insurance) insurances;
 
@@ -244,15 +245,17 @@ contract FlightSuretyData {
                             fromAppAdress
     {
         //1000000000000000000
+        require(reservelog[_airline_address][_flight_id][_departure_time] == false, "This account already bought an insurance for this flight");
         require(msg.value <= 1000000000000000000, "Cannot buy insurance for more than 1 ether (1000000000000000000 wei)");
         require(msg.value > 0, "The price must be higher than 0 wei");
-        require(((msg.value * 3) / 2) <= (airlines[_airline_address].balance - airlines[_airline_address].reserved), "The request Airline is sold out of insurances");
+        require(((uint(msg.value) * uint(3)) / uint(2)) <= (airlines[_airline_address].balance - airlines[_airline_address].reserved), "The request Airline is sold out of insurances");
         Insurance memory item = Insurance(_from,_airline_address, _flight_id, _departure_time, msg.value, false);
         uint count = policies_counter;
         insurances[count] = item;
         policies_counter++;
-        airlines[_airline_address].reserved = airlines[_airline_address].reserved + ((msg.value * 3)/2);
-        airlines[_airline_address].balance = airlines[_airline_address].reserved + msg.value;
+        reservelog[_airline_address][_flight_id][_departure_time] = true;
+        airlines[_airline_address].reserved = airlines[_airline_address].reserved + ((uint(msg.value) * uint(3)) / uint(2));
+        airlines[_airline_address].balance = airlines[_airline_address].balance + msg.value;
         emit InsuranceBought(count,_from,_flight_id,_departure_time,msg.value);
     }
 
@@ -271,12 +274,12 @@ contract FlightSuretyData {
         require(insurances[_policy].claimed == false, "Policy Already Claimed");
         require(insurances[_policy].holder == _from, "Requester is not the Policy Owner");
         require(flights[insurances[_policy].airline_address][insurances[_policy].flight_id][insurances[_policy].departure_time] == 20,"The current flight status is not delayed duo to airline failure");
-        require((airlines[insurances[_policy].airline_address].balance >= ((insurances[_policy].cost * 3)/ 2 )) && (airlines[insurances[_policy].airline_address].reserved >= ((insurances[_policy].cost * 3)/2)),"The airline cannot provide insurance payment at the moment");
+        require((airlines[insurances[_policy].airline_address].balance >= ((uint(insurances[_policy].cost) * uint(3)) / uint(2)) && (airlines[insurances[_policy].airline_address].reserved >= ((uint(insurances[_policy].cost) * uint(3)) / uint(2)))),"The airline cannot provide insurance payment at the moment");
         insurances[_policy].claimed = true;
-        airlines[insurances[_policy].airline_address].balance = airlines[insurances[_policy].airline_address].balance - ((insurances[_policy].cost * 3)/ 2 );
-        airlines[insurances[_policy].airline_address].reserved = airlines[insurances[_policy].airline_address].reserved - ((insurances[_policy].cost * 3)/ 2 );
-        passengers[_from].balance = passengers[_from].balance + ((insurances[_policy].cost * 3)/ 2 );
-        emit InsuranceClaimed(_policy,insurances[_policy].holder,insurances[_policy].flight_id,insurances[_policy].departure_time,((insurances[_policy].cost * 3)/ 2 ));
+        airlines[insurances[_policy].airline_address].balance = airlines[insurances[_policy].airline_address].balance - ((uint(insurances[_policy].cost) * uint(3)) / uint(2));
+        airlines[insurances[_policy].airline_address].reserved = airlines[insurances[_policy].airline_address].reserved - ((uint(insurances[_policy].cost) * uint(3)) / uint(2));
+        passengers[_from].balance = passengers[_from].balance + ((uint(insurances[_policy].cost) * uint(3)) / uint(2));
+        emit InsuranceClaimed(_policy,insurances[_policy].holder,insurances[_policy].flight_id,insurances[_policy].departure_time,((uint(insurances[_policy].cost) * uint(3)) / uint(2)));
     }
     
 

@@ -207,7 +207,7 @@ contract FlightSuretyApp {
                             external
                             view
                             requireIsOperational
-                            returns (uint status)
+                            returns (uint32 status)
                             
     {
         //sec
@@ -465,13 +465,13 @@ contract FlightSuretyData {
     function setOperatingStatus (bool mode) external;
     function registerAirline (address _from,string _name,address _address) external;
     function approveAirline (address _from,address _address) external;
-    function buy (address _from, address _airline_address, uint _flight_id, uint _departure_time ) external payable;
+    function buy (address _from, address _airline_address, uint32 _flight_id, uint32 _departure_time ) external payable;
     function creditInsurees (address _from, uint _policy ) external;
     function pay (address _from) external;
     function fund (address _from ) external payable;
     function setAppAddress (address _app) public;
-    function setFlightStatus (address _airline_address, uint _flight_id, uint _departure_time, uint _status) external;
-    function getFlightStatus (address _airline_address, uint _flight_id, uint _departure_time) external view returns (uint status);
+    function setFlightStatus (address _airline_address, uint32 _flight_id, uint32 _departure_time, uint32 _status) external;
+    function getFlightStatus (address _airline_address, uint32 _flight_id, uint32 _departure_time) external view returns (uint32 status);
     function AirlineStatus (address _address) external view returns (bool status);
     
 }

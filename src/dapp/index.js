@@ -53,35 +53,91 @@ web3.eth.getAccounts(async (error, accounts) => {
     //console.log(air);
     var flight = document.getElementById("Flight1").value;
     var time = document.getElementById("Departure1").value;
-    var res = await flightSuretyApp.methods
+    flightSuretyApp.methods
       .getFlightStatus(air, flight, time)
-      .call({
-        from: accounts[0],
-        gas: 3000000
-      })
+      .call()
       .then(res => {
-        return res;
+        //return res;
+        if (res == "10") {
+          setDetails("flight status ON TIME", "1");
+        } else if (res == "20") {
+          setDetails("flight status LATE DUE TO AIRLINE", "1");
+
+          flightSuretyApp.methods.fetchFlightStatus(air, flight, time).send({
+            from: accounts[0],
+            gas: 3000000
+          });
+        } else if (res == "30") {
+          setDetails("flight status LATE DUE TO WEATHER", "1");
+        } else if (res == "40") {
+          setDetails("flight status LATE DUE TECHNICAL", "1");
+        } else if (res == "50") {
+          setDetails("flight status LATE DUE OTHER", "1");
+        } else if (res == "0") {
+          setDetails("flight status UNKNOWN", "1");
+        }
       })
       .catch(res => {
         return res;
+      })
+      .then(async res => {
+        //console.log(res);
+        flightSuretyApp.events.OracleRequest(
+          {
+            fromBlock: "latest"
+          },
+          async function(error, result) {
+            console.log(await result.returnValues);
+          }
+        );
       });
-    setDetails(await res, "1");
   });
   //e
 
   //s
   document.getElementById("Go2").addEventListener("click", async function() {
     var air = document.getElementById("Airline2").value;
-    //console.log(air);
     var flight = document.getElementById("Flight2").value;
     var time = document.getElementById("Departure2").value;
     var price = document.getElementById("Price2").value;
     var res;
-    await flightSuretyApp.methods
+    flightSuretyApp.methods
       .buy(air, flight, time)
       .send({
         from: accounts[0],
         value: price,
+        gas: 3000000
+      })
+      .catch(res => {
+        console.log(res);
+        setDetails(res, "2");
+      })
+      .then(async () => {
+        //console.log(res);
+        flightSuretyData.events.InsuranceBought(
+          {
+            fromBlock: "latest"
+          },
+          async function(error, result) {
+            console.log(await result.returnValues.policy);
+            setDetails(
+              "Policy Bought: " + (await result.returnValues.policy),
+              "2"
+            );
+          }
+        );
+      });
+  });
+  //e
+
+  //s
+  document.getElementById("Go3").addEventListener("click", async function() {
+    var policy = document.getElementById("Policy3").value;
+    var res;
+    await flightSuretyApp.methods
+      .creditInsurees(policy)
+      .send({
+        from: accounts[0],
         gas: 3000000
       })
       .then(res => {
@@ -89,20 +145,34 @@ web3.eth.getAccounts(async (error, accounts) => {
       })
       .catch(res => {
         console.log(res);
-        setDetails(res, "2");
+        setDetails(res, "3");
       });
+  });
+  //e
 
-    await flightSuretyData.events.InsuranceBought(
-      {
-        fromBlock: "latest"
-      },
-      async function(error, result) {
-        console.log(result);
-      }
-    );
+  //s
+  document.getElementById("Go4").addEventListener("click", async function() {
+    var res;
+    await flightSuretyApp.methods
+      .pay()
+      .send({
+        from: accounts[0],
+        gas: 3000000
+      })
+      .then(res => {
+        console.log(res);
+      })
+      .catch(res => {
+        console.log(res);
+        setDetails(res, "4");
+      });
   });
   //e
 });
+
+/* disabled for testing reasons will be acitve on released version 
+
+
 
 if (typeof web3 !== "undefined") {
   console.warn(
@@ -126,4 +196,6 @@ if (typeof web3 !== "undefined") {
   window.web3 = new Web3(
     new Web3.providers.HttpProvider("http://127.0.0.1:8545")
   );
+
 }
+  */
