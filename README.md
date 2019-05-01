@@ -16,10 +16,10 @@ To install, download or clone the repo, then:
 
 To run truffle tests:
 
-`npm install`
-`truffle develop`
-`compile --reset`
-`test`
+1. `npm install`
+2. `truffle develop`
+3. `compile --reset`
+4. `test`
 
 ## testing the full system
 

@@ -198,7 +198,7 @@ contract("Flight Surety Tests", async accounts => {
   });
 
   it("multi oracles", async () => {
-    for (var i = 1; i < 50; i++) {
+    for (var i = 1; i < 10; i++) {
       await config.flightSuretyApp.registerOracle({
         from: accounts[i],
         value: 1000000000000000000

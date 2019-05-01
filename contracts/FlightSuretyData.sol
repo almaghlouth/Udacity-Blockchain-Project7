@@ -244,7 +244,8 @@ contract FlightSuretyData {
                             fromAppAdress
     {
         //1000000000000000000
-        require(msg.value <= 1000000000000000000, "Cannot buy insurance for more than 1 ether");
+        require(msg.value <= 1000000000000000000, "Cannot buy insurance for more than 1 ether (1000000000000000000 wei)");
+        require(msg.value > 0, "The price must be higher than 0 wei");
         require(((msg.value * 3) / 2) <= (airlines[_airline_address].balance - airlines[_airline_address].reserved), "The request Airline is sold out of insurances");
         Insurance memory item = Insurance(_from,_airline_address, _flight_id, _departure_time, msg.value, false);
         uint count = policies_counter;
@@ -268,6 +269,7 @@ contract FlightSuretyData {
                                
     {
         require(insurances[_policy].claimed == false, "Policy Already Claimed");
+        require(insurances[_policy].holder == _from, "Requester is not the Policy Owner");
         require(flights[insurances[_policy].airline_address][insurances[_policy].flight_id][insurances[_policy].departure_time] == 20,"The current flight status is not delayed duo to airline failure");
         require((airlines[insurances[_policy].airline_address].balance >= ((insurances[_policy].cost * 3)/ 2 )) && (airlines[insurances[_policy].airline_address].reserved >= ((insurances[_policy].cost * 3)/2)),"The airline cannot provide insurance payment at the moment");
         insurances[_policy].claimed = true;
