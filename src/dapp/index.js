@@ -48,49 +48,39 @@ web3.eth.getAccounts(async (error, accounts) => {
   //let res = await flightSuretyApp.methods.isOperational().call();
 
   //s
-  document.getElementById("Go1").addEventListener("click", async function() {
+  document.getElementById("Go1").addEventListener("click", function() {
     var air = document.getElementById("Airline1").value;
-    //console.log(air);
     var flight = document.getElementById("Flight1").value;
     var time = document.getElementById("Departure1").value;
-    flightSuretyApp.methods
+    let res = flightSuretyApp.methods
       .getFlightStatus(air, flight, time)
       .call()
       .then(res => {
-        //return res;
-        if (res == "10") {
-          setDetails("flight status ON TIME", "1");
-        } else if (res == "20") {
-          setDetails("flight status LATE DUE TO AIRLINE", "1");
-
-          flightSuretyApp.methods.fetchFlightStatus(air, flight, time).send({
-            from: accounts[0],
-            gas: 3000000
-          });
-        } else if (res == "30") {
-          setDetails("flight status LATE DUE TO WEATHER", "1");
-        } else if (res == "40") {
-          setDetails("flight status LATE DUE TECHNICAL", "1");
-        } else if (res == "50") {
-          setDetails("flight status LATE DUE OTHER", "1");
-        } else if (res == "0") {
-          setDetails("flight status UNKNOWN", "1");
-        }
+        return res;
+        //await res;
       })
       .catch(res => {
         return res;
-      })
-      .then(async res => {
-        //console.log(res);
-        flightSuretyApp.events.OracleRequest(
-          {
-            fromBlock: "latest"
-          },
-          async function(error, result) {
-            console.log(await result.returnValues);
-          }
-        );
       });
+    if (res == "10") {
+      setDetails("flight status ON TIME", "1");
+    } else if (res == "20") {
+      setDetails("flight status LATE DUE TO AIRLINE", "1");
+    } else if (res == "30") {
+      setDetails("flight status LATE DUE TO WEATHER", "1");
+    } else if (res == "40") {
+      setDetails("flight status LATE DUE TECHNICAL", "1");
+    } else if (res == "50") {
+      asetDetails("flight status LATE DUE OTHER", "1");
+    } else if (res == "0") {
+      setDetails("flight status UNKNOWN", "1");
+      flightSuretyApp.methods.fetchFlightStatus(air, flight, time).send({
+        from: accounts[0],
+        gas: 3000000
+      });
+    } else {
+      setDetails(res, "1");
+    }
   });
   //e
 
@@ -119,11 +109,23 @@ web3.eth.getAccounts(async (error, accounts) => {
             fromBlock: "latest"
           },
           async function(error, result) {
+            //await result;
+            if (error) {
+              console.log(error);
+              setDetails(error, "2");
+            }
+            await result.returnValues;
+            if (result.returnValues.holder == accounts[0]) {
+              console.log(result.returnValues.policy);
+              setDetails("Policy Bought: " + result.returnValues.policy, "2");
+            }
+            /*
             console.log(await result.returnValues.policy);
             setDetails(
               "Policy Bought: " + (await result.returnValues.policy),
               "2"
             );
+            */
           }
         );
       });
@@ -131,17 +133,35 @@ web3.eth.getAccounts(async (error, accounts) => {
   //e
 
   //s
-  document.getElementById("Go3").addEventListener("click", async function() {
+  document.getElementById("Go3").addEventListener("click", function() {
     var policy = document.getElementById("Policy3").value;
     var res;
-    await flightSuretyApp.methods
+    flightSuretyApp.methods
       .creditInsurees(policy)
       .send({
         from: accounts[0],
         gas: 3000000
       })
-      .then(res => {
-        console.log(res);
+      .then(async () => {
+        //console.log(res);
+        await flightSuretyData.events.InsuranceClaimed(
+          {
+            fromBlock: "latest"
+          },
+          async function(error, result) {
+            await result;
+            if (result.returnValues.policy == policy) {
+              console.log(result.returnValues.policy);
+              await setDetails(
+                "Policy Claimed: " +
+                  result.returnValues.policy +
+                  "   Awarded Amount: " +
+                  result.returnValues.amount,
+                "2"
+              );
+            }
+          }
+        );
       })
       .catch(res => {
         console.log(res);
@@ -151,16 +171,34 @@ web3.eth.getAccounts(async (error, accounts) => {
   //e
 
   //s
-  document.getElementById("Go4").addEventListener("click", async function() {
+  document.getElementById("Go4").addEventListener("click", function() {
     var res;
-    await flightSuretyApp.methods
+    flightSuretyApp.methods
       .pay()
       .send({
         from: accounts[0],
         gas: 3000000
       })
-      .then(res => {
-        console.log(res);
+      .then(async () => {
+        //console.log(res);
+        await flightSuretyData.events.BalanceWithdraw(
+          {
+            fromBlock: "latest"
+          },
+          async function(error, result) {
+            await SpeechRecognitionResultList;
+            if (result.returnValues.holder == accounts[0]) {
+              console.log(result.returnValues.amount);
+              setDetails(
+                "Balance Withdrawn: " +
+                  result.returnValues.policy +
+                  "   Amount: -" +
+                  result.returnValues.amount,
+                "2"
+              );
+            }
+          }
+        );
       })
       .catch(res => {
         console.log(res);
