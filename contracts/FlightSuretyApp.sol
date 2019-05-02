@@ -43,7 +43,8 @@ contract FlightSuretyApp {
 
         // Incremented to add pseudo-randomness at various points
     uint8 private nonce1 = 1;  
-    uint16 private nonce2 = 1000;  
+    uint16 private nonce2 = 999; 
+    uint8 private switcher = 0; 
 
     // Fee to be paid when registering oracle
     uint256 public constant REGISTRATION_FEE = 1 ether;
@@ -364,7 +365,7 @@ contract FlightSuretyApp {
                         external
     {
         require((oracles[msg.sender].indexes[0] == index) || (oracles[msg.sender].indexes[1] == index) || (oracles[msg.sender].indexes[2] == index), "Index does not match oracle request");
-
+        require(statusCode > 0 , "Unknown status is not acceptable input");
         bytes32 key = keccak256(abi.encodePacked(index, airline, flight, timestamp)); 
         require(oracleResponses[key].isOpen, "Flight or timestamp do not match oracle request");
 
@@ -431,6 +432,17 @@ function generateIndexes () internal returns (uint8[3])
         uint8 random = uint8(uint32((nonce2) - (nonce1)) % maxValue);
         nonce1++;
         nonce2--;
+           if (random < 9 && switcher == 0){
+            random++;
+            switcher = 1;
+        } else if (switcher == 1){
+            switcher = 2;
+        } else if (switcher == 2){
+            switcher = 3;
+        } else if (switcher == 3){
+            switcher = 0;
+        }
+
         if (nonce1 > 250) {
             nonce1 = 1;  
         }

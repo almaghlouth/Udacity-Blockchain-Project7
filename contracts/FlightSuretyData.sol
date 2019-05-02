@@ -66,8 +66,8 @@ contract FlightSuretyData {
     event AirlineApproved(address _address, uint id, string name);
     event AirlineActivated(address _address, uint id, string name);
 
-    event InsuranceBought(uint policy, address holder,uint32 flight_id, uint32 depature_time, uint price);
-    event InsuranceClaimed(uint policy, address holder,uint32 flight_id, uint32 depature_time, uint amount);
+    event InsuranceBought(uint policy, address holder,address airline,uint32 flight_id, uint32 depature_time, uint price);
+    event InsuranceClaimed(uint policy, address holder,address airline,uint32 flight_id, uint32 depature_time, uint amount);
     event BalanceWithdraw(address holder, uint amount);
 
 
@@ -245,6 +245,7 @@ contract FlightSuretyData {
                             fromAppAdress
     {
         //1000000000000000000
+        require(flights[_airline_address][_flight_id][_departure_time] == 0, "This flight already have confirmed status");
         require(reservelog[_airline_address][_flight_id][_departure_time] == false, "This account already bought an insurance for this flight");
         require(msg.value <= 1000000000000000000, "Cannot buy insurance for more than 1 ether (1000000000000000000 wei)");
         require(msg.value > 0, "The price must be higher than 0 wei");
@@ -256,7 +257,7 @@ contract FlightSuretyData {
         reservelog[_airline_address][_flight_id][_departure_time] = true;
         airlines[_airline_address].reserved = airlines[_airline_address].reserved + ((uint(msg.value) * uint(3)) / uint(2));
         airlines[_airline_address].balance = airlines[_airline_address].balance + msg.value;
-        emit InsuranceBought(count,_from,_flight_id,_departure_time,msg.value);
+        emit InsuranceBought(count,_from,_airline_address,_flight_id,_departure_time,msg.value);
     }
 
     /**
@@ -279,7 +280,7 @@ contract FlightSuretyData {
         airlines[insurances[_policy].airline_address].balance = airlines[insurances[_policy].airline_address].balance - ((uint(insurances[_policy].cost) * uint(3)) / uint(2));
         airlines[insurances[_policy].airline_address].reserved = airlines[insurances[_policy].airline_address].reserved - ((uint(insurances[_policy].cost) * uint(3)) / uint(2));
         passengers[_from].balance = passengers[_from].balance + ((uint(insurances[_policy].cost) * uint(3)) / uint(2));
-        emit InsuranceClaimed(_policy,insurances[_policy].holder,insurances[_policy].flight_id,insurances[_policy].departure_time,((uint(insurances[_policy].cost) * uint(3)) / uint(2)));
+        emit InsuranceClaimed(_policy,insurances[_policy].holder,insurances[_policy].airline_address,insurances[_policy].flight_id,insurances[_policy].departure_time,((uint(insurances[_policy].cost) * uint(3)) / uint(2)));
     }
     
 
@@ -314,7 +315,7 @@ contract FlightSuretyData {
                             requireIsOperational
                             fromAppAdress
     {
-        require(airlines[_from].approved == true, "funding transaction must be done by from an account of an approvedd airline");
+        require(airlines[_from].approved == true, "funding transaction must be done by from an account of an approved airline");
         require(msg.value >= 10000000000000000000, "The Value must be 10 ether more");
         //1000000000000000000
             airlines[_from].balance = msg.value;
